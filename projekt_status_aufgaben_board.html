@@ -1,0 +1,2396 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Projekt Status & Aufgaben Board (2D & 3D Gantt)</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    /* Scrollbars themed */
+    .custom-scroll::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    .dark .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    .dark .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(71, 85, 105, 0.6);
+      border-radius: 9999px;
+    }
+    html:not(.dark) .custom-scroll::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    html:not(.dark) .custom-scroll::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+
+    /* Kanban Card styles */
+    .kanban-card {
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      cursor: grab;
+    }
+    .kanban-card:active {
+      cursor: grabbing;
+    }
+    .kanban-card.dragging {
+      opacity: 0.35;
+      transform: scale(0.98);
+    }
+    .drop-highlight {
+      border: 2px dashed #10b981 !important;
+      background-color: rgba(16, 185, 129, 0.08) !important;
+    }
+
+    /* Gantt Row and Interactive Styles */
+    .gantt-row {
+      transition: background-color 0.12s ease;
+      position: relative;
+    }
+    .dark .gantt-row:hover {
+      background-color: rgba(30, 41, 59, 0.55);
+    }
+    html:not(.dark) .gantt-row:hover {
+      background-color: rgba(241, 245, 249, 0.85);
+    }
+
+    .gantt-bar-wrapper {
+      position: absolute;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      transition: left 0.15s ease, width 0.15s ease;
+      z-index: 20;
+    }
+
+    .gantt-bar {
+      transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+      cursor: pointer;
+    }
+    .gantt-bar:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+
+    /* Hover '+' Connector Handle */
+    .dep-connect-btn {
+      opacity: 0;
+      transform: scale(0.85);
+      transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s ease;
+      pointer-events: none;
+      z-index: 45;
+    }
+    .gantt-row:hover .dep-connect-btn,
+    .gantt-bar-wrapper:hover .dep-connect-btn,
+    .dep-connect-btn:hover {
+      opacity: 1 !important;
+      transform: scale(1) !important;
+      pointer-events: auto !important;
+    }
+
+    /* Dependency Linking crosshair and target feedback */
+    body.is-linking-dependency {
+      cursor: crosshair !important;
+      user-select: none;
+    }
+    body.is-linking-dependency .gantt-row {
+      cursor: pointer !important;
+    }
+    body.is-linking-dependency .gantt-row.valid-target:hover {
+      background-color: rgba(16, 185, 129, 0.2) !important;
+      box-shadow: inset 0 0 0 2px #10b981;
+    }
+    body.is-linking-dependency .gantt-left-row.valid-target:hover {
+      background-color: rgba(16, 185, 129, 0.2) !important;
+      box-shadow: inset 0 0 0 2px #10b981;
+    }
+    body.is-linking-dependency .gantt-row.invalid-target,
+    body.is-linking-dependency .gantt-left-row.invalid-target {
+      opacity: 0.45;
+      cursor: not-allowed !important;
+    }
+
+    /* Connection Line Arrow styles */
+    .dependency-arrow-path {
+      cursor: pointer;
+      pointer-events: stroke;
+      transition: stroke-width 0.15s ease, stroke 0.15s ease;
+    }
+    .dependency-arrow-path:hover {
+      stroke: #ef4444 !important;
+      stroke-width: 3.5 !important;
+    }
+
+    /* Left Sidebar Task Row Dragging & Grouping */
+    .gantt-left-row {
+      cursor: grab;
+      user-select: none;
+      transition: background-color 0.15s ease, opacity 0.15s ease;
+    }
+    .gantt-left-row:active {
+      cursor: grabbing;
+    }
+    .gantt-left-row.dragging {
+      opacity: 0.35;
+      background-color: rgba(16, 185, 129, 0.15);
+    }
+    .gantt-left-row.drag-over-top {
+      border-top: 2px solid #10b981 !important;
+    }
+    .gantt-left-row.drag-over-bottom {
+      border-bottom: 2px solid #10b981 !important;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-[#030712] dark:text-slate-100 h-screen w-screen overflow-hidden flex flex-col antialiased selection:bg-emerald-500 selection:text-white">
+
+  <!-- Full-Width Header -->
+  <header class="border-b border-slate-200 dark:border-slate-800/90 bg-white/95 dark:bg-[#0b0f19]/95 backdrop-blur z-30 px-4 lg:px-6 py-2.5 flex-shrink-0 shadow-xs dark:shadow-none">
+    <div class="w-full flex flex-wrap items-center justify-between gap-3">
+      <!-- Title & Dynamic Workspace Detection -->
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white text-base font-bold">
+          <i class="fa-solid fa-layer-group"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2" id="projectHeaderTitle">
+              Projekt Hub
+            </h1>
+            <span id="workspaceBadge" class="text-xs font-mono font-medium px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5" title="Erkannter Workspace">
+              <i class="fa-regular fa-folder-open text-[10px]"></i>
+              <span id="workspaceBadgeName">Default</span>
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 hidden md:flex items-center gap-2">
+            <span>Aufgaben-, Status- & Zeitleisten-Steuerung</span>
+            <span class="text-slate-300 dark:text-slate-600">•</span>
+            <span class="text-slate-500 font-mono text-[11px]" id="storageKeyHint">Key: project_board_data_default</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Controls & Actions -->
+      <div class="flex items-center flex-wrap gap-2">
+        <!-- View Toggle -->
+        <div class="bg-slate-100 dark:bg-slate-800/90 p-1 rounded-xl border border-slate-200 dark:border-slate-700/70 flex items-center text-xs">
+          <button id="btnViewGantt" onclick="switchView('gantt')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all bg-emerald-600 text-white shadow-sm">
+            <i class="fa-solid fa-chart-gantt"></i>
+            <span>Gantt-Chart</span>
+          </button>
+          <button id="btnViewKanban" onclick="switchView('kanban')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200">
+            <i class="fa-solid fa-table-columns"></i>
+            <span>Kanban</span>
+          </button>
+          <button id="btnViewTable" onclick="switchView('table')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200">
+            <i class="fa-solid fa-table-list"></i>
+            <span>Tabelle</span>
+          </button>
+        </div>
+
+        <!-- Theme Switcher -->
+        <button id="themeToggleBtn" onclick="toggleTheme()" class="p-2 sm:px-3 sm:py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center gap-1.5 text-xs sm:text-sm font-medium transition shadow-sm" title="Zwischen Hell- und Dunkelmodus wechseln">
+          <i id="themeToggleIcon" class="fa-solid fa-sun text-amber-500 text-xs sm:text-sm"></i>
+          <span id="themeToggleLabel" class="hidden sm:inline text-xs">Hell</span>
+        </button>
+
+        <!-- AI Import -->
+        <button onclick="openAiImportModal()" class="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold shadow-md shadow-indigo-600/20 border border-indigo-500/30 transition">
+          <i class="fa-solid fa-wand-magic-sparkles text-indigo-200"></i>
+          <span class="hidden sm:inline">KI-Schnellimport</span>
+          <span class="sm:hidden">KI</span>
+        </button>
+
+        <!-- Add Task -->
+        <button onclick="openTaskModal()" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold shadow-md shadow-emerald-600/25 transition">
+          <i class="fa-solid fa-plus"></i>
+          <span>Neue Aufgabe</span>
+        </button>
+
+        <!-- Options Menu -->
+        <div class="relative">
+          <button onclick="toggleMenu()" id="menuButton" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 transition" aria-label="Optionen">
+            <i class="fa-solid fa-ellipsis-vertical px-0.5"></i>
+          </button>
+          <div id="dropdownMenu" class="hidden absolute right-0 mt-2 w-56 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 py-1.5 text-xs text-slate-700 dark:text-slate-300">
+            <div class="px-3 py-1.5 text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800" id="dropdownWorkspaceTitle">
+              Workspace: default
+            </div>
+            <button onclick="exportJSON()" class="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5">
+              <i class="fa-solid fa-file-code text-teal-600 dark:text-teal-400 w-4"></i> Export als JSON
+            </button>
+            <button onclick="exportCSV()" class="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5">
+              <i class="fa-solid fa-file-csv text-emerald-600 dark:text-emerald-400 w-4"></i> Export als CSV
+            </button>
+            <label class="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer">
+              <i class="fa-solid fa-file-import text-blue-600 dark:text-blue-400 w-4"></i> Backup importieren
+              <input type="file" id="fileImportInput" accept=".json" class="hidden" onchange="importJSON(event)" />
+            </label>
+            <div class="h-px bg-slate-100 dark:bg-slate-800 my-1"></div>
+            <button onclick="resetToSampleData()" class="w-full text-left px-3.5 py-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 flex items-center gap-2.5">
+              <i class="fa-solid fa-arrow-rotate-left w-4"></i> Demodaten für dieses Projekt
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Interactive Linking Banner -->
+  <div id="dependencyLinkingBanner" class="hidden bg-emerald-600 dark:bg-emerald-700 text-white px-4 lg:px-6 py-2 text-xs sm:text-sm font-medium shadow-md flex items-center justify-between z-40 transition-all border-b border-emerald-500/40 flex-shrink-0">
+    <div class="flex items-center gap-2.5 truncate pr-2">
+      <span class="w-2.5 h-2.5 rounded-full bg-white animate-ping flex-shrink-0"></span>
+      <span class="truncate">
+        <strong>Verknüpfungsmodus aktiv:</strong> Klicke auf die <strong>Nachfolger-Aufgabe</strong>, die nach 
+        <span id="linkingSourceTaskName" class="font-bold underline underline-offset-2 px-1"></span> starten soll.
+      </span>
+      <span class="hidden md:inline text-emerald-100 text-xs flex-shrink-0">(ESC zum Abbrechen)</span>
+    </div>
+    <button onclick="cancelDependencyLinking()" class="bg-black/25 hover:bg-black/40 text-white px-3 py-1 rounded-lg text-xs font-semibold transition active:scale-95 flex items-center gap-1.5 shadow-sm flex-shrink-0">
+      <i class="fa-solid fa-xmark"></i> Abbrechen
+    </button>
+  </div>
+
+  <!-- Full-Bleed Edge-to-Edge Main Container -->
+  <main class="flex-1 w-full px-3 lg:px-6 py-3 flex flex-col gap-3 min-h-0 overflow-hidden">
+    <!-- Quick KPI Stats Bar (Edge-to-Edge Fluid Grid) -->
+    <section class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2.5 flex-shrink-0">
+      <!-- Total -->
+      <div class="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-xl p-2.5 sm:p-3 shadow-xs">
+        <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-medium mb-0.5">
+          <span>Gesamt</span>
+          <i class="fa-solid fa-layer-group text-slate-400 dark:text-slate-500 text-xs"></i>
+        </div>
+        <div class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100" id="statTotal">0</div>
+        <div class="text-[10px] text-slate-500 dark:text-slate-500">Aktive Arbeitspakete</div>
+      </div>
+
+      <!-- In Progress -->
+      <div class="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-xl p-2.5 sm:p-3 shadow-xs">
+        <div class="flex items-center justify-between text-xs text-blue-600 dark:text-blue-400 font-medium mb-0.5">
+          <span>In Arbeit</span>
+          <i class="fa-solid fa-spinner animate-spin text-blue-500 text-xs" style="animation-duration: 3s;"></i>
+        </div>
+        <div class="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-300" id="statInProgress">0</div>
+        <div class="text-[10px] text-slate-500 dark:text-slate-500">Fokus-Aufgaben</div>
+      </div>
+
+      <!-- Blocked -->
+      <div class="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-xl p-2.5 sm:p-3 shadow-xs">
+        <div class="flex items-center justify-between text-xs text-rose-600 dark:text-rose-400 font-medium mb-0.5">
+          <span>Blockiert</span>
+          <i class="fa-solid fa-triangle-exclamation text-rose-500 text-xs"></i>
+        </div>
+        <div class="text-xl sm:text-2xl font-bold text-rose-600 dark:text-rose-400" id="statBlocked">0</div>
+        <div class="text-[10px] text-rose-500/80 dark:text-rose-500/70">Handlungsbedarf!</div>
+      </div>
+
+      <!-- Completed -->
+      <div class="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-xl p-2.5 sm:p-3 shadow-xs">
+        <div class="flex items-center justify-between text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-0.5">
+          <span>Erledigt</span>
+          <i class="fa-solid fa-circle-check text-emerald-500 text-xs"></i>
+        </div>
+        <div class="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400" id="statDone">0</div>
+        <div class="text-[10px] text-emerald-600/80 dark:text-emerald-500/80">Abgeschlossen</div>
+      </div>
+
+      <!-- Progress Ratio -->
+      <div class="col-span-2 sm:col-span-4 lg:col-span-1 bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-xl p-2.5 sm:p-3 flex flex-col justify-between shadow-xs">
+        <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-medium">
+          <span>Ø Fortschritt</span>
+          <span id="statPercentText" class="font-bold text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm">0%</span>
+        </div>
+        <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 my-1 overflow-hidden border border-slate-200 dark:border-slate-700/50">
+          <div id="statProgressBar" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+        <div class="text-[10px] text-slate-500 dark:text-slate-500 flex justify-between">
+          <span id="statProgressRatio">0 / 0 fertig</span>
+          <span class="text-slate-700 dark:text-slate-400 font-semibold" id="statHighPriorityOpen">0 hoch offen</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Filters & Search Toolbar (Fluid Edge-to-Edge) -->
+    <section class="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 flex flex-wrap items-center gap-2.5 shadow-xs flex-shrink-0">
+      <div class="min-w-[200px] flex-1 relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-xs"></i>
+        <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Suchen nach Titel, Notizen oder nächstem Schritt..." 
+               class="w-full pl-8 pr-3 py-1.5 rounded-lg bg-slate-50 dark:bg-[#030712] border border-slate-200 dark:border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 outline-none transition" />
+      </div>
+
+      <div class="min-w-[130px]">
+        <select id="filterPhase" onchange="applyFilters()" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-[#030712] border border-slate-200 dark:border-slate-800 focus:border-emerald-500 text-xs text-slate-700 dark:text-slate-300 outline-none transition">
+          <option value="ALL">Alle Phasen</option>
+          <option value="Konzept">Konzept</option>
+          <option value="Vorbereitung">Vorbereitung</option>
+          <option value="Umsetzung">Umsetzung</option>
+          <option value="Schnittstellen">Schnittstellen</option>
+          <option value="Inbetriebnahme">Inbetriebnahme</option>
+          <option value="Doku">Doku</option>
+        </select>
+      </div>
+
+      <div class="min-w-[120px]">
+        <select id="filterPriority" onchange="applyFilters()" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-[#030712] border border-slate-200 dark:border-slate-800 focus:border-emerald-500 text-xs text-slate-700 dark:text-slate-300 outline-none transition">
+          <option value="ALL">Alle Prioritäten</option>
+          <option value="Hoch">Hoch</option>
+          <option value="Mittel">Mittel</option>
+          <option value="Niedrig">Niedrig</option>
+        </select>
+      </div>
+
+      <div class="min-w-[120px]">
+        <select id="filterStatus" onchange="applyFilters()" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-[#030712] border border-slate-200 dark:border-slate-800 focus:border-emerald-500 text-xs text-slate-700 dark:text-slate-300 outline-none transition">
+          <option value="ALL">Alle Status</option>
+          <option value="Offen">Offen / Backlog</option>
+          <option value="In Arbeit">In Arbeit</option>
+          <option value="Blockiert">Blockiert</option>
+          <option value="Erledigt">Erledigt</option>
+        </select>
+      </div>
+
+      <button onclick="resetFilters()" title="Filter zurücksetzen" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 text-xs flex items-center gap-1.5 transition">
+        <i class="fa-solid fa-filter-circle-xmark"></i>
+        <span class="hidden sm:inline">Zurücksetzen</span>
+      </button>
+    </section>
+
+    <!-- VIEW 1: FULL-SCREEN GANTT CHART 2D (DEFAULT ACTIVE VIEW) -->
+    <section id="ganttView" class="flex-1 w-full bg-white dark:bg-[#0b0f19] border border-slate-200 dark:border-slate-800 rounded-xl flex flex-col shadow-xs dark:shadow-xl overflow-hidden min-h-0">
+      <!-- Gantt Control Bar -->
+      <div class="p-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-[#030712]/90 flex flex-wrap items-center justify-between gap-2.5 text-xs flex-shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="text-slate-600 dark:text-slate-400 font-medium">Zeitskala:</span>
+          <div class="bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center">
+            <button onclick="setGanttZoom('day')" id="ganttZoomDay" class="px-2 py-1 rounded text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:white transition">Tage</button>
+            <button onclick="setGanttZoom('week')" id="ganttZoomWeek" class="px-2.5 py-1 rounded bg-emerald-600 text-white font-medium shadow transition">Wochen</button>
+            <button onclick="setGanttZoom('month')" id="ganttZoomMonth" class="px-2 py-1 rounded text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:white transition">Monate</button>
+          </div>
+          <button onclick="scrollGanttToToday()" class="ml-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-400 border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition shadow-xs">
+            <i class="fa-solid fa-bullseye text-[10px]"></i> Heute fokussieren
+          </button>
+        </div>
+
+        <!-- Legend -->
+        <div class="flex items-center flex-wrap gap-3 text-[11px] text-slate-500 dark:text-slate-400">
+          <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-blue-500 inline-block"></span> In Arbeit</div>
+          <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-rose-500 inline-block"></span> Blockiert</div>
+          <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-emerald-500 inline-block"></span> Erledigt</div>
+          <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-slate-400 dark:bg-slate-600 inline-block"></span> Offen</div>
+          <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded-full bg-rose-500 text-white flex items-center justify-center text-[10px] font-bold">+</span> Verknüpfung</div>
+          <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 border-l-2 border-dashed border-red-500 inline-block"></span> Heute</div>
+        </div>
+      </div>
+
+      <!-- Gantt Canvas Container with Full Available Height -->
+      <div class="flex-1 flex overflow-hidden custom-scroll min-h-0 relative" id="ganttScrollContainer">
+        <!-- Gantt Left Side: Task Names & Phasen (Draggable) -->
+        <div class="w-64 sm:w-80 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-[#0b0f19] z-20 flex flex-col select-none overflow-y-auto custom-scroll">
+          <div class="h-12 px-3.5 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-600 dark:text-slate-400 text-xs flex items-center justify-between uppercase tracking-wider bg-slate-100/90 dark:bg-[#030712] sticky top-0 z-10">
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-grip-vertical text-slate-400 text-[10px]"></i> Aufgabe & Phase</span>
+            <span>Fortschritt</span>
+          </div>
+          <div id="ganttTaskLabelList" class="divide-y divide-slate-200 dark:divide-slate-800/60"></div>
+        </div>
+
+        <!-- Gantt Right Side: Scalable Timeline Canvas -->
+        <div class="flex-1 overflow-x-auto overflow-y-auto custom-scroll relative bg-white dark:bg-[#030712]/90" id="ganttTimelineWrapper">
+          <div id="ganttInnerTimeline" class="relative min-w-full">
+            <!-- Timeline Header (Dates/Weeks/Months) -->
+            <div id="ganttHeaderRow" class="h-12 sticky top-0 bg-slate-100/95 dark:bg-[#030712]/95 border-b border-slate-200 dark:border-slate-800 z-10 flex"></div>
+
+            <!-- SVG Canvas for Dependency Linking Arrows -->
+            <svg id="ganttDependencySvg" class="absolute inset-0 pointer-events-none z-30 w-full h-full">
+              <defs>
+                <marker id="arrowhead" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#10b981" />
+                </marker>
+                <marker id="arrowhead-red" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#ef4444" />
+                </marker>
+              </defs>
+              <g id="svgArrowGroup"></g>
+              <path id="svgLiveLinkLine" d="" fill="none" stroke="#10b981" stroke-width="2.5" stroke-dasharray="5,4" class="hidden"></path>
+            </svg>
+
+            <!-- Grid Rows and Bars -->
+            <div id="ganttBodyRows" class="relative divide-y divide-slate-100 dark:divide-slate-800/60"></div>
+
+            <!-- Dynamic Today Line -->
+            <div id="ganttTodayIndicator" class="hidden absolute top-0 bottom-0 w-[2px] bg-red-500 z-15 pointer-events-none shadow-[0_0_8px_rgba(239,68,68,0.8)]">
+              <span class="absolute -top-0 -left-6 bg-red-600 text-white font-bold text-[9px] px-1.5 py-0.5 rounded shadow">Heute</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: FULL-WIDTH KANBAN BOARD -->
+    <section id="kanbanView" class="hidden grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3.5 flex-1 w-full min-h-0 overflow-y-auto custom-scroll pb-2">
+      <!-- Offen -->
+      <div class="kanban-column bg-slate-100/70 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/80 rounded-xl p-3 flex flex-col h-full min-h-[360px]"
+           ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'Offen')">
+        <div class="flex items-center justify-between px-2 py-1 mb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+            <h2 class="font-semibold text-xs sm:text-sm text-slate-800 dark:text-slate-200">Offen / Backlog</h2>
+          </div>
+          <span id="badgeCountOffen" class="text-xs px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold border border-slate-200 dark:border-slate-700/60 shadow-xs">0</span>
+        </div>
+        <div id="colOffen" class="flex-1 overflow-y-auto space-y-2.5 custom-scroll pr-1"></div>
+      </div>
+
+      <!-- In Arbeit -->
+      <div class="kanban-column bg-slate-100/70 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/80 rounded-xl p-3 flex flex-col h-full min-h-[360px]"
+           ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'In Arbeit')">
+        <div class="flex items-center justify-between px-2 py-1 mb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
+            <h2 class="font-semibold text-xs sm:text-sm text-slate-800 dark:text-slate-200">In Arbeit</h2>
+          </div>
+          <span id="badgeCountInArbeit" class="text-xs px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 font-semibold border border-blue-200 dark:border-blue-800/40">0</span>
+        </div>
+        <div id="colInArbeit" class="flex-1 overflow-y-auto space-y-2.5 custom-scroll pr-1"></div>
+      </div>
+
+      <!-- Blockiert -->
+      <div class="kanban-column bg-slate-100/70 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/80 rounded-xl p-3 flex flex-col h-full min-h-[360px]"
+           ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'Blockiert')">
+        <div class="flex items-center justify-between px-2 py-1 mb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+            <h2 class="font-semibold text-xs sm:text-sm text-slate-800 dark:text-slate-200">Blockiert</h2>
+          </div>
+          <span id="badgeCountBlockiert" class="text-xs px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 font-semibold border border-rose-200 dark:border-rose-800/40">0</span>
+        </div>
+        <div id="colBlockiert" class="flex-1 overflow-y-auto space-y-2.5 custom-scroll pr-1"></div>
+      </div>
+
+      <!-- Erledigt -->
+      <div class="kanban-column bg-slate-100/70 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/80 rounded-xl p-3 flex flex-col h-full min-h-[360px]"
+           ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'Erledigt')">
+        <div class="flex items-center justify-between px-2 py-1 mb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            <h2 class="font-semibold text-xs sm:text-sm text-slate-800 dark:text-slate-200">Erledigt</h2>
+          </div>
+          <span id="badgeCountErledigt" class="text-xs px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 font-semibold border border-emerald-200 dark:border-emerald-800/40">0</span>
+        </div>
+        <div id="colErledigt" class="flex-1 overflow-y-auto space-y-2.5 custom-scroll pr-1"></div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: FULL-WIDTH TABLE VIEW -->
+    <section id="tableView" class="hidden flex-1 w-full bg-white dark:bg-[#0b0f19] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden flex flex-col shadow-xs dark:shadow-xl min-h-0">
+      <div class="overflow-x-auto overflow-y-auto custom-scroll flex-1">
+        <table class="w-full text-left text-xs sm:text-sm text-slate-700 dark:text-slate-300 border-collapse">
+          <thead class="bg-slate-100/80 dark:bg-[#030712] text-slate-600 dark:text-slate-400 font-semibold uppercase text-[11px] tracking-wider border-b border-slate-200 dark:border-slate-800 select-none sticky top-0 z-10">
+            <tr>
+              <th scope="col" class="py-3 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white" onclick="sortTable('title')">
+                Aufgabe / Arbeitspaket <i id="sortIcon_title" class="fa-solid fa-sort ml-1"></i>
+              </th>
+              <th scope="col" class="py-3 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white" onclick="sortTable('phase')">
+                Phase <i id="sortIcon_phase" class="fa-solid fa-sort ml-1"></i>
+              </th>
+              <th scope="col" class="py-3 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white" onclick="sortTable('priority')">
+                Priorität <i id="sortIcon_priority" class="fa-solid fa-sort ml-1"></i>
+              </th>
+              <th scope="col" class="py-3 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white" onclick="sortTable('status')">
+                Status <i id="sortIcon_status" class="fa-solid fa-sort ml-1"></i>
+              </th>
+              <th scope="col" class="py-3 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white" onclick="sortTable('progress')">
+                Fortschritt <i id="sortIcon_progress" class="fa-solid fa-sort ml-1"></i>
+              </th>
+              <th scope="col" class="py-3 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white" onclick="sortTable('startDate')">
+                Zeitraum <i id="sortIcon_startDate" class="fa-solid fa-sort ml-1"></i>
+              </th>
+              <th scope="col" class="py-3 px-4">Abhängigkeit</th>
+              <th scope="col" class="py-3 px-4">Nächster Schritt</th>
+              <th scope="col" class="py-3 px-4 text-right">Aktionen</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody" class="divide-y divide-slate-100 dark:divide-slate-800/70 bg-white dark:bg-[#0b0f19]"></tbody>
+        </table>
+      </div>
+      <div id="tableEmptyState" class="hidden p-8 text-center text-slate-400 dark:text-slate-500 text-sm">
+        <i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-300 dark:text-slate-600 block"></i>
+        Keine passenden Aufgaben für diese Filterkriterien gefunden.
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL: ADD / EDIT TASK -->
+  <div id="taskModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden transform transition-all">
+      <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <h3 id="modalTitle" class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <i class="fa-solid fa-pen-to-square text-emerald-500 dark:text-emerald-400"></i> Neue Aufgabe erstellen
+        </h3>
+        <button onclick="closeTaskModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="taskForm" onsubmit="handleTaskSubmit(event)" class="p-5 space-y-4 text-xs sm:text-sm">
+        <input type="hidden" id="taskId" />
+
+        <!-- Title -->
+        <div>
+          <label class="block text-slate-700 dark:text-slate-300 font-medium mb-1">Aufgabentitel / Arbeitspaket *</label>
+          <input type="text" id="taskTitle" required placeholder="z. B. Klopfer-Zyklus testen"
+                 class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none" />
+        </div>
+
+        <!-- Dependency Predecessor Selector -->
+        <div class="bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 rounded-xl p-3 space-y-2">
+          <label class="block text-emerald-900 dark:text-emerald-300 font-semibold flex items-center justify-between">
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-link text-emerald-500"></i> Abhängig von Vorgänger (Predecessor)</span>
+            <button type="button" onclick="clearPredecessorSelection()" class="text-[10px] text-slate-500 dark:text-slate-400 hover:underline">Keine Verknüpfung</button>
+          </label>
+          <select id="taskPredecessor" class="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700/60 focus:border-emerald-500 text-slate-900 dark:text-slate-100 outline-none text-xs">
+            <option value="">-- Keine Abhängigkeit (Startet unabhängig) --</option>
+          </select>
+          <p class="text-[11px] text-emerald-800/80 dark:text-emerald-400/80 leading-tight">
+            Verschiebt sich der Vorgänger, wandert diese Aufgabe im 2D & 3D Gantt-Chart automatisch mit.
+          </p>
+        </div>
+
+        <!-- Phase & Priority Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label class="block text-slate-700 dark:text-slate-300 font-medium mb-1">Kategorie / Phase</label>
+            <select id="taskPhase" class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 text-slate-900 dark:text-slate-100 outline-none">
+              <option value="Konzept">Konzept</option>
+              <option value="Vorbereitung">Vorbereitung</option>
+              <option value="Umsetzung">Umsetzung</option>
+              <option value="Schnittstellen">Schnittstellen</option>
+              <option value="Inbetriebnahme">Inbetriebnahme</option>
+              <option value="Doku">Doku</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-700 dark:text-slate-300 font-medium mb-1">Priorität</label>
+            <select id="taskPriority" class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 text-slate-900 dark:text-slate-100 outline-none">
+              <option value="Hoch">Hoch</option>
+              <option value="Mittel" selected>Mittel</option>
+              <option value="Niedrig">Niedrig</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Status & Progress Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label class="block text-slate-700 dark:text-slate-300 font-medium mb-1">Status</label>
+            <select id="taskStatus" onchange="syncStatusProgress()" class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 text-slate-900 dark:text-slate-100 outline-none">
+              <option value="Offen">Offen / Backlog</option>
+              <option value="In Arbeit">In Arbeit</option>
+              <option value="Blockiert">Blockiert</option>
+              <option value="Erledigt">Erledigt</option>
+            </select>
+          </div>
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="text-slate-700 dark:text-slate-300 font-medium">Fortschritt (%)</label>
+              <span id="progressValueText" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">0%</span>
+            </div>
+            <input type="range" id="taskProgress" min="0" max="100" step="5" value="0" oninput="updateProgressDisplay(this.value)"
+                   class="w-full h-2 bg-slate-200 dark:bg-slate-950 rounded-lg appearance-none cursor-pointer accent-emerald-500 border border-slate-300 dark:border-slate-800 mt-2" />
+          </div>
+        </div>
+
+        <!-- Date Range -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label class="block text-slate-700 dark:text-slate-300 font-medium mb-1">Startdatum *</label>
+            <input type="date" id="taskStartDate" required
+                   class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 text-slate-900 dark:text-slate-100 outline-none" />
+          </div>
+          <div>
+            <label class="block text-slate-700 dark:text-slate-300 font-medium mb-1">Enddatum / Frist *</label>
+            <input type="date" id="taskEndDate" required
+                   class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 text-slate-900 dark:text-slate-100 outline-none" />
+          </div>
+        </div>
+
+        <!-- Next Action -->
+        <div>
+          <label class="block text-slate-700 dark:text-slate-300 font-medium mb-1">Nächster konkreter Schritt</label>
+          <input type="text" id="taskNextAction" placeholder="Was ist der unmittelbare nächste Handgriff?"
+                 class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none" />
+        </div>
+
+        <!-- Notes -->
+        <div>
+          <label class="block text-slate-700 dark:text-slate-300 font-medium mb-1">Notizen & Details / Blocker</label>
+          <textarea id="taskNotes" rows="2" placeholder="Wichtige Hinweise, Links oder Blockergründe..."
+                    class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none resize-none"></textarea>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
+          <button type="button" onclick="closeTaskModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition font-medium">
+            Abbrechen
+          </button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-md shadow-emerald-600/30 transition">
+            Speichern
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: AI RAPID ENTRY & PROMPT BUILDER -->
+  <div id="aiImportModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+      <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-950/60 flex-shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+            <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">KI-Schnellimport & Prompt-Vorlage</h3>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400">Aufgaben per ChatGPT, Gemini oder Claude generieren und direkt einfügen</p>
+          </div>
+        </div>
+        <button onclick="closeAiImportModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-5 text-xs sm:text-sm overflow-y-auto custom-scroll flex-1">
+        <!-- Step 1: Prompt Builder and Copier -->
+        <div class="bg-slate-50 dark:bg-slate-950/70 border border-indigo-200 dark:border-indigo-500/30 rounded-xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-semibold text-indigo-700 dark:text-indigo-300 flex items-center gap-2 text-xs uppercase tracking-wider">
+              <i class="fa-solid fa-terminal text-indigo-500 dark:text-indigo-400"></i> Schritt 1: Prompt für beliebige KI kopieren
+            </span>
+            <button type="button" onclick="copySystemPromptToClipboard()" id="btnCopyPrompt" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs flex items-center gap-1.5 shadow transition active:scale-95">
+              <i class="fa-regular fa-copy"></i>
+              <span>Prompt kopieren</span>
+            </button>
+          </div>
+
+          <div class="space-y-1.5 pt-1">
+            <label class="block text-[11px] font-medium text-slate-600 dark:text-slate-400">
+              Optional: Eigene Stichpunkte oder Befehl vorab anhängen:
+            </label>
+            <div class="flex gap-2">
+              <input type="text" id="aiCustomCommandInput" oninput="updateDynamicPromptText()" placeholder="z. B. Klopfer-Zyklus testen nach FG14 Schublade Klopfer programmieren"
+                     class="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700/80 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 text-xs outline-none" />
+              <button type="button" onclick="clearCustomCommand()" class="px-2.5 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 text-xs transition" title="Feld leeren">
+                <i class="fa-solid fa-rotate-left"></i>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-[10px] text-slate-500 dark:text-slate-500 font-medium uppercase tracking-wider">Vorschau des generierten KI-Prompts</span>
+              <span class="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono" id="promptCharCount">0 Zeichen</span>
+            </div>
+            <textarea id="aiPromptPreviewArea" readonly rows="5" class="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-300 font-mono text-[11px] outline-none resize-none custom-scroll select-all"></textarea>
+          </div>
+        </div>
+
+        <!-- Step 2: Pasting JSON Result -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2 text-xs uppercase tracking-wider">
+              <i class="fa-solid fa-file-code text-emerald-500 dark:text-emerald-400"></i> Schritt 2: JSON-Antwort der KI hier einfügen
+            </span>
+            <button type="button" onclick="pasteSampleToInput()" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline underline-offset-2">
+              Musterbeispiel einfügen
+            </button>
+          </div>
+          <textarea id="aiJsonInput" rows="6" placeholder='[
+  {
+    "title": "Klopfer-Zyklus testen",
+    "category": "Inbetriebnahme",
+    "priority": "high",
+    "status": "todo",
+    "progress": 0,
+    "startDate": "2026-10-18",
+    "endDate": "2026-10-24",
+    "depends_on": "FG14 Schublade Klopfer programmieren",
+    "next_step": "Endlagensensorik und Taktzeit messen",
+    "notes": "Startet unmittelbar nach Abschluss der Klopfer-Programmierung"
+  }
+]' class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-900 dark:text-slate-100 font-mono text-xs placeholder-slate-400 dark:placeholder-slate-600 outline-none resize-none custom-scroll"></textarea>
+        </div>
+      </div>
+
+      <div class="px-5 py-3.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/80 flex items-center justify-between flex-shrink-0">
+        <button type="button" onclick="closeAiImportModal()" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition font-medium text-xs">
+          Schließen
+        </button>
+        <button type="button" onclick="processAiJsonImport()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-md shadow-emerald-600/30 transition text-xs flex items-center gap-1.5 active:scale-95">
+          <i class="fa-solid fa-circle-check"></i>
+          <span>Einträge ins Board übernehmen</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 dark:bg-slate-800 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-xs sm:text-sm border border-slate-700">
+    <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+    <span id="toastMessage">Aktion erfolgreich</span>
+  </div>
+
+  <script>
+    // Theme Management (Light / Dark)
+    const THEME_STORAGE_KEY = 'project_board_theme';
+
+    function initTheme() {
+      const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+      const isDark = savedTheme !== null ? savedTheme === 'dark' : false;
+      applyTheme(isDark);
+    }
+
+    function applyTheme(isDark) {
+      const html = document.documentElement;
+      const themeIcon = document.getElementById('themeToggleIcon');
+      const themeLabel = document.getElementById('themeToggleLabel');
+
+      if (isDark) {
+        html.classList.add('dark');
+        localStorage.setItem(THEME_STORAGE_KEY, 'dark');
+        if (themeIcon) themeIcon.className = 'fa-solid fa-sun text-amber-400 text-sm';
+        if (themeLabel) themeLabel.innerText = 'Hell';
+      } else {
+        html.classList.remove('dark');
+        localStorage.setItem(THEME_STORAGE_KEY, 'light');
+        if (themeIcon) themeIcon.className = 'fa-solid fa-moon text-indigo-500 text-sm';
+        if (themeLabel) themeLabel.innerText = 'Dunkel';
+      }
+
+      if (tasks && tasks.length > 0) {
+        render();
+      }
+    }
+
+    function toggleTheme() {
+      const isDark = document.documentElement.classList.contains('dark');
+      applyTheme(!isDark);
+      showToast(!isDark ? 'Dunkelmodus aktiviert' : 'Hellmodus aktiviert');
+    }
+
+    // Dynamic project workspace & storage key resolution based on pathname
+    function detectProjectWorkspace() {
+      let rawPath = window.location.pathname || '';
+      rawPath = rawPath.replace(/\\/g, '/');
+      const segments = rawPath.split('/').filter(Boolean);
+      let filename = segments.length > 0 ? segments[segments.length - 1] : '';
+
+      filename = filename.split('?')[0].split('#')[0];
+
+      let projectName = 'Projekt';
+      if (filename && filename.toLowerCase().endsWith('.html')) {
+        projectName = filename.substring(0, filename.length - 5);
+      } else if (filename) {
+        projectName = filename;
+      }
+
+      projectName = decodeURIComponent(projectName).trim();
+      if (!projectName || projectName.toLowerCase() === 'index') {
+        projectName = 'Hauptprojekt';
+      }
+
+      const storageKey = `project_board_data_${projectName}`;
+      return { projectName, filename: filename || 'lokale Datei', storageKey };
+    }
+
+    const currentWorkspace = detectProjectWorkspace();
+    const STORAGE_KEY = currentWorkspace.storageKey;
+
+    // Helper dates relative to today
+    const now = new Date();
+    const toISO = (d) => d.toISOString().split('T')[0];
+    const addDays = (days) => {
+      const d = new Date(now);
+      d.setDate(d.getDate() + days);
+      return toISO(d);
+    };
+
+    // Automation & Engineering Tasks
+    const DEFAULT_TASKS = [
+      {
+        id: 't-1',
+        title: 'Werkstückstatus aus HMI an PLC übertragen',
+        phase: 'Schnittstellen',
+        priority: 'Hoch',
+        status: 'Offen',
+        progress: 0,
+        startDate: addDays(0),
+        endDate: addDays(5),
+        dependsOn: '',
+        nextAction: 'DB-Struktur in TIA Portal anlegen',
+        notes: 'Handshake-Bits für Werkstückfreigabe definieren.'
+      },
+      {
+        id: 't-2',
+        title: 'Kontrollbild nach Türschließung im Relais',
+        phase: 'Inbetriebnahme',
+        priority: 'Mittel',
+        status: 'Offen',
+        progress: 0,
+        startDate: addDays(0),
+        endDate: addDays(4),
+        dependsOn: '',
+        nextAction: 'Sicherheitskreis-Verriegelung prüfen',
+        notes: 'Visuelle Rückmeldung am HMI-Panel verifizieren.'
+      },
+      {
+        id: 't-3',
+        title: 'FG14 Schublade Klopfer programmieren',
+        phase: 'Umsetzung',
+        priority: 'Hoch',
+        status: 'In Arbeit',
+        progress: 40,
+        startDate: addDays(0),
+        endDate: addDays(4),
+        dependsOn: '',
+        nextAction: 'Zylinder-Ansteuerung und Taktsignale einprogrammieren',
+        notes: 'Voraussetzung für den anschließenden Klopfer-Zyklustest.'
+      },
+      {
+        id: 't-4',
+        title: 'Klopfer-Zyklus testen',
+        phase: 'Inbetriebnahme',
+        priority: 'Hoch',
+        status: 'Offen',
+        progress: 0,
+        startDate: addDays(5),
+        endDate: addDays(9),
+        dependsOn: 't-3',
+        nextAction: 'Sensorabfragen und Zylinderhub im Tippbetrieb prüfen',
+        notes: 'Darf erst starten, wenn die Klopfer-Programmierung abgeschlossen ist.'
+      },
+      {
+        id: 't-5',
+        title: 'Umrüstprozess fertig programmieren',
+        phase: 'Umsetzung',
+        priority: 'Mittel',
+        status: 'In Arbeit',
+        progress: 70,
+        startDate: addDays(-2),
+        endDate: addDays(3),
+        dependsOn: '',
+        nextAction: 'Rezepturverwaltung für Werkzeugwechsel abschließen',
+        notes: 'Bereits zu 70% parametriert.'
+      },
+      {
+        id: 't-6',
+        title: 'Umrüstprozess testen',
+        phase: 'Inbetriebnahme',
+        priority: 'Mittel',
+        status: 'Offen',
+        progress: 0,
+        startDate: addDays(4),
+        endDate: addDays(7),
+        dependsOn: 't-5',
+        nextAction: 'Werkzeugwechsel mit Musterteilen durchspielen',
+        notes: 'Hängt direkt an der Umrüstprogrammierung.'
+      },
+      {
+        id: 't-7',
+        title: 'Leerfahrt der Maschine testen',
+        phase: 'Inbetriebnahme',
+        priority: 'Niedrig',
+        status: 'Offen',
+        progress: 0,
+        startDate: addDays(0),
+        endDate: addDays(3),
+        dependsOn: '',
+        nextAction: 'Not-Aus Kreise und Achsendschalter abfahren',
+        notes: 'Grundlegende Maschinenbewegung sicherstellen.'
+      },
+      {
+        id: 't-8',
+        title: 'Reset-Funktion testen',
+        phase: 'Inbetriebnahme',
+        priority: 'Mittel',
+        status: 'Offen',
+        progress: 0,
+        startDate: addDays(6),
+        endDate: addDays(10),
+        dependsOn: '',
+        nextAction: 'Schrittketten-Reset bei laufendem Zyklus simulieren',
+        notes: 'Sicherstellen, dass keine Zylinder in Zwischenstellung verharren.'
+      }
+    ];
+
+    let tasks = [];
+    let currentView = 'gantt'; // Starts directly in Gantt 2D view
+    let sortColumn = null;
+    let sortAsc = true;
+    let draggedTaskId = null;
+    let draggedLeftRowIndex = null;
+    let ganttZoom = 'week';
+
+    // Interactive Dependency Linking State (2D)
+    let linkingPredecessorId = null;
+    let linkingStartCoords = null;
+    let cachedBarPositions = {};
+
+    // -------------------------------------------------------------
+    // GENERAL APP & TASK LOGIC
+    // -------------------------------------------------------------
+    function initWorkspaceUI() {
+      const headerTitle = document.getElementById('projectHeaderTitle');
+      const badgeName = document.getElementById('workspaceBadgeName');
+      const storageHint = document.getElementById('storageKeyHint');
+      const dropdownTitle = document.getElementById('dropdownWorkspaceTitle');
+
+      if (headerTitle) headerTitle.innerText = `Projekt: ${currentWorkspace.projectName}`;
+      if (badgeName) badgeName.innerText = currentWorkspace.filename;
+      if (storageHint) storageHint.innerText = `Key: ${currentWorkspace.storageKey}`;
+      if (dropdownTitle) dropdownTitle.innerText = `Workspace: ${currentWorkspace.projectName}`;
+      document.title = `${currentWorkspace.projectName} - Board & Gantt (2D & 3D)`;
+    }
+
+    function loadTasks() {
+      initTheme();
+      initWorkspaceUI();
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          tasks = JSON.parse(stored);
+          tasks = tasks.map(t => ({
+            ...t,
+            startDate: t.startDate || t.deadline || toISO(new Date()),
+            endDate: t.endDate || t.deadline || addDays(5),
+            dependsOn: t.dependsOn || t.depends_on || '',
+            progress: typeof t.progress === 'number' ? t.progress : (t.status === 'Erledigt' ? 100 : 0)
+          }));
+        } else {
+          tasks = [...DEFAULT_TASKS];
+          saveTasks();
+        }
+      } catch (e) {
+        console.error('Fehler beim Laden:', e);
+        tasks = [...DEFAULT_TASKS];
+      }
+
+      switchView('gantt');
+    }
+
+    function saveTasks() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      } catch (e) {
+        showToast('Speicherfehler im Browser', 'error');
+      }
+    }
+
+    function showToast(msg, type = 'success') {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMessage');
+      const toastIcon = document.getElementById('toastIcon');
+
+      toastMsg.innerText = msg;
+      if (type === 'error') {
+        toastIcon.className = 'fa-solid fa-circle-exclamation text-rose-400';
+      } else {
+        toastIcon.className = 'fa-solid fa-circle-check text-emerald-400';
+      }
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 2600);
+    }
+
+    function getFilteredTasks() {
+      const query = document.getElementById('filterSearch').value.toLowerCase().trim();
+      const phase = document.getElementById('filterPhase').value;
+      const priority = document.getElementById('filterPriority').value;
+      const status = document.getElementById('filterStatus').value;
+
+      return tasks.filter(t => {
+        const matchesQuery = !query || 
+          t.title.toLowerCase().includes(query) || 
+          (t.notes && t.notes.toLowerCase().includes(query)) ||
+          (t.nextAction && t.nextAction.toLowerCase().includes(query));
+        const matchesPhase = phase === 'ALL' || t.phase === phase;
+        const matchesPriority = priority === 'ALL' || t.priority === priority;
+        const matchesStatus = status === 'ALL' || t.status === status;
+
+        return matchesQuery && matchesPhase && matchesPriority && matchesStatus;
+      });
+    }
+
+    function applyFilters() {
+      render();
+    }
+
+    function resetFilters() {
+      document.getElementById('filterSearch').value = '';
+      document.getElementById('filterPhase').value = 'ALL';
+      document.getElementById('filterPriority').value = 'ALL';
+      document.getElementById('filterStatus').value = 'ALL';
+      render();
+    }
+
+    function updateMetrics() {
+      const total = tasks.length;
+      const inProgress = tasks.filter(t => t.status === 'In Arbeit').length;
+      const blocked = tasks.filter(t => t.status === 'Blockiert').length;
+      const done = tasks.filter(t => t.status === 'Erledigt').length;
+      const highOpen = tasks.filter(t => t.priority === 'Hoch' && t.status !== 'Erledigt').length;
+
+      const avgProgress = total === 0 ? 0 : Math.round(tasks.reduce((acc, t) => acc + (t.progress || 0), 0) / total);
+
+      document.getElementById('statTotal').innerText = total;
+      document.getElementById('statInProgress').innerText = inProgress;
+      document.getElementById('statBlocked').innerText = blocked;
+      document.getElementById('statDone').innerText = done;
+
+      document.getElementById('statPercentText').innerText = `${avgProgress}%`;
+      document.getElementById('statProgressBar').style.width = `${avgProgress}%`;
+      document.getElementById('statProgressRatio').innerText = `${done} von ${total} fertig`;
+      document.getElementById('statHighPriorityOpen').innerText = `${highOpen} Prio-Hoch offen`;
+    }
+
+    function getPriorityBadge(prio) {
+      if (prio === 'Hoch') {
+        return `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1 w-max"><i class="fa-solid fa-angles-up text-[10px]"></i> Hoch</span>`;
+      } else if (prio === 'Mittel') {
+        return `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1 w-max"><i class="fa-solid fa-angle-up text-[10px]"></i> Mittel</span>`;
+      }
+      return `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-200 dark:bg-slate-700/40 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600/40 flex items-center gap-1 w-max"><i class="fa-solid fa-minus text-[10px]"></i> Niedrig</span>`;
+    }
+
+    function getPhaseBadge(phase) {
+      return `<span class="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80">${escapeHTML(phase || 'Konzept')}</span>`;
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '<span class="text-slate-400 dark:text-slate-600">-</span>';
+      try {
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+          return `${parts[2]}.${parts[1]}.${parts[0]}`;
+        }
+      } catch (e) {}
+      return dateStr;
+    }
+
+    // Cascade date shifts
+    function cascadeDependentTasks(predecessorId, visited = new Set()) {
+      if (visited.has(predecessorId)) return;
+      visited.add(predecessorId);
+
+      const predecessor = tasks.find(t => t.id === predecessorId);
+      if (!predecessor || !predecessor.endDate) return;
+
+      const predEnd = new Date(predecessor.endDate);
+      predEnd.setHours(0, 0, 0, 0);
+
+      const minStart = new Date(predEnd);
+      minStart.setDate(minStart.getDate() + 1);
+
+      tasks.forEach(task => {
+        if (task.dependsOn === predecessorId) {
+          const currStart = new Date(task.startDate);
+          const currEnd = new Date(task.endDate);
+          const durationDays = Math.max(1, Math.round((currEnd - currStart) / (1000 * 60 * 60 * 24)));
+
+          if (currStart < minStart) {
+            task.startDate = toISO(minStart);
+            const newEnd = new Date(minStart);
+            newEnd.setDate(newEnd.getDate() + durationDays);
+            task.endDate = toISO(newEnd);
+            cascadeDependentTasks(task.id, visited);
+          }
+        }
+      });
+    }
+
+    function wouldCauseCircularDependency(sourceId, targetId) {
+      if (sourceId === targetId) return true;
+      let curr = sourceId;
+      const visited = new Set();
+      while (curr && !visited.has(curr)) {
+        visited.add(curr);
+        const parent = tasks.find(t => t.id === curr);
+        if (parent && parent.dependsOn === targetId) {
+          return true;
+        }
+        curr = parent ? parent.dependsOn : null;
+      }
+      return false;
+    }
+
+    // 2D Dependency Linking
+    function startDependencyLinking(sourceTaskId, e) {
+      if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+      const sourceTask = tasks.find(t => t.id === sourceTaskId);
+      if (!sourceTask) return;
+
+      linkingPredecessorId = sourceTaskId;
+      document.body.classList.add('is-linking-dependency');
+
+      const banner = document.getElementById('dependencyLinkingBanner');
+      const nameSpan = document.getElementById('linkingSourceTaskName');
+      nameSpan.innerText = `"${sourceTask.title}"`;
+      banner.classList.remove('hidden');
+
+      if (cachedBarPositions[sourceTaskId]) {
+        linkingStartCoords = {
+          x: cachedBarPositions[sourceTaskId].endX + 6,
+          y: cachedBarPositions[sourceTaskId].centerY
+        };
+      }
+
+      showToast(`Verknüpfungsmodus aktiv: Wähle die Nachfolge-Aufgabe aus.`);
+      render();
+    }
+
+    function cancelDependencyLinking() {
+      linkingPredecessorId = null;
+      linkingStartCoords = null;
+      document.body.classList.remove('is-linking-dependency');
+      document.getElementById('dependencyLinkingBanner').classList.add('hidden');
+      const liveLine = document.getElementById('svgLiveLinkLine');
+      if (liveLine) liveLine.classList.add('hidden');
+      render();
+    }
+
+    window.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && linkingPredecessorId) {
+        cancelDependencyLinking();
+      }
+    });
+
+    document.addEventListener('mousemove', function(e) {
+      if (!linkingPredecessorId || !linkingStartCoords) return;
+      const timelineWrapper = document.getElementById('ganttTimelineWrapper');
+      const svg = document.getElementById('ganttDependencySvg');
+      const liveLine = document.getElementById('svgLiveLinkLine');
+      if (!timelineWrapper || !svg || !liveLine) return;
+
+      const rect = svg.getBoundingClientRect();
+      const currentX = e.clientX - rect.left;
+      const currentY = e.clientY - rect.top;
+
+      const startX = linkingStartCoords.x;
+      const startY = linkingStartCoords.y;
+      const deltaX = Math.max(25, (currentX - startX) / 2);
+
+      liveLine.setAttribute('d', `M ${startX} ${startY} C ${startX + deltaX} ${startY}, ${currentX - deltaX} ${currentY}, ${currentX} ${currentY}`);
+      liveLine.classList.remove('hidden');
+    });
+
+    function handleTaskClickInGantt(targetTaskId, e) {
+      if (e) e.stopPropagation();
+
+      if (!linkingPredecessorId) {
+        editTask(targetTaskId);
+        return;
+      }
+
+      if (linkingPredecessorId === targetTaskId) {
+        showToast('Eine Aufgabe kann nicht von sich selbst abhängen!', 'error');
+        return;
+      }
+
+      if (wouldCauseCircularDependency(linkingPredecessorId, targetTaskId)) {
+        showToast('Zirkuläre Abhängigkeit nicht erlaubt!', 'error');
+        cancelDependencyLinking();
+        return;
+      }
+
+      const targetTask = tasks.find(t => t.id === targetTaskId);
+      const sourceTask = tasks.find(t => t.id === linkingPredecessorId);
+
+      if (targetTask && sourceTask) {
+        targetTask.dependsOn = linkingPredecessorId;
+        cascadeDependentTasks(linkingPredecessorId);
+        saveTasks();
+        showToast(`Abhängigkeit verknüpft: "${sourceTask.title}" ➔ "${targetTask.title}"`);
+      }
+
+      cancelDependencyLinking();
+    }
+
+    function removeDependency(taskId, e) {
+      if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+      const t = tasks.find(item => item.id === taskId);
+      if (t) {
+        const pred = tasks.find(p => p.id === t.dependsOn);
+        const predName = pred ? pred.title : 'Vorgänger';
+        t.dependsOn = '';
+        saveTasks();
+        render();
+        showToast(`Abhängigkeit gelöst: "${t.title}" hängt nicht mehr von "${predName}" ab.`);
+      }
+    }
+
+    // Left sidebar drag and drop (Grouping)
+    function handleLeftRowDragStart(e, index) {
+      draggedLeftRowIndex = index;
+      e.dataTransfer.effectAllowed = 'move';
+      e.currentTarget.classList.add('dragging');
+    }
+
+    function handleLeftRowDragOver(e, index) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const row = e.currentTarget;
+      const rect = row.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+
+      row.classList.remove('drag-over-top', 'drag-over-bottom');
+      if (e.clientY < mid) {
+        row.classList.add('drag-over-top');
+      } else {
+        row.classList.add('drag-over-bottom');
+      }
+    }
+
+    function handleLeftRowDragLeave(e) {
+      e.currentTarget.classList.remove('drag-over-top', 'drag-over-bottom');
+    }
+
+    function handleLeftRowDrop(e, targetIndex) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('drag-over-top', 'drag-over-bottom');
+
+      if (draggedLeftRowIndex === null || draggedLeftRowIndex === targetIndex) return;
+
+      const filtered = getFilteredTasks();
+      const draggedTask = filtered[draggedLeftRowIndex];
+      const targetTask = filtered[targetIndex];
+
+      if (!draggedTask || !targetTask) return;
+
+      const globalSourceIndex = tasks.findIndex(t => t.id === draggedTask.id);
+      const globalTargetIndex = tasks.findIndex(t => t.id === targetTask.id);
+
+      if (globalSourceIndex === -1 || globalTargetIndex === -1) return;
+
+      const [movedItem] = tasks.splice(globalSourceIndex, 1);
+      tasks.splice(globalTargetIndex, 0, movedItem);
+
+      saveTasks();
+      render();
+      showToast(`Aufgabe "${movedItem.title}" verschoben`);
+      draggedLeftRowIndex = null;
+    }
+
+    function handleLeftRowDragEnd(e) {
+      e.currentTarget.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom');
+      document.querySelectorAll('.gantt-left-row').forEach(r => r.classList.remove('drag-over-top', 'drag-over-bottom'));
+      draggedLeftRowIndex = null;
+    }
+
+    // 2D Gantt Rendering
+    function renderGantt(filteredTasks) {
+      const isDark = document.documentElement.classList.contains('dark');
+      const labelList = document.getElementById('ganttTaskLabelList');
+      const headerRow = document.getElementById('ganttHeaderRow');
+      const bodyRows = document.getElementById('ganttBodyRows');
+      const todayIndicator = document.getElementById('ganttTodayIndicator');
+      const svg = document.getElementById('ganttDependencySvg');
+      const arrowGroup = document.getElementById('svgArrowGroup');
+
+      labelList.innerHTML = '';
+      headerRow.innerHTML = '';
+      bodyRows.innerHTML = '';
+      if (arrowGroup) arrowGroup.innerHTML = '';
+
+      if (filteredTasks.length === 0) {
+        labelList.innerHTML = '<div class="p-4 text-xs text-slate-400 dark:text-slate-500">Keine Aufgaben</div>';
+        headerRow.innerHTML = '<div class="p-4 text-xs text-slate-400 dark:text-slate-500">Keine Timeline-Daten</div>';
+        todayIndicator.classList.add('hidden');
+        return;
+      }
+
+      let minDate = new Date();
+      let maxDate = new Date();
+
+      filteredTasks.forEach((t, i) => {
+        const s = new Date(t.startDate || toISO(new Date()));
+        const e = new Date(t.endDate || t.startDate || toISO(new Date()));
+        if (i === 0) {
+          minDate = new Date(s);
+          maxDate = new Date(e);
+        } else {
+          if (s < minDate) minDate = new Date(s);
+          if (e > maxDate) maxDate = new Date(e);
+        }
+      });
+
+      minDate.setDate(minDate.getDate() - (ganttZoom === 'day' ? 3 : 7));
+      maxDate.setDate(maxDate.getDate() + (ganttZoom === 'day' ? 7 : 14));
+      minDate.setHours(0, 0, 0, 0);
+      maxDate.setHours(0, 0, 0, 0);
+
+      const totalDays = Math.max(1, Math.round((maxDate - minDate) / (1000 * 60 * 60 * 24)));
+
+      let dayWidth = 42;
+      if (ganttZoom === 'day') dayWidth = 64;
+      if (ganttZoom === 'month') dayWidth = 20;
+
+      const totalTimelineWidth = totalDays * dayWidth;
+      document.getElementById('ganttInnerTimeline').style.width = `${totalTimelineWidth}px`;
+      svg.setAttribute('width', totalTimelineWidth);
+      svg.setAttribute('height', filteredTasks.length * 56 + 56);
+
+      let curr = new Date(minDate);
+      let dayIndex = 0;
+
+      while (curr <= maxDate) {
+        const cell = document.createElement('div');
+        cell.className = 'border-r border-slate-200 dark:border-slate-800/80 text-[10px] text-slate-500 dark:text-slate-400 flex flex-col justify-center items-center select-none flex-shrink-0';
+        cell.style.width = `${dayWidth}px`;
+
+        const isWeekend = curr.getDay() === 0 || curr.getDay() === 6;
+        if (isWeekend) cell.classList.add('bg-slate-200/40', 'dark:bg-slate-900/40');
+
+        const isTodayCell = curr.toDateString() === new Date().toDateString();
+        if (isTodayCell) cell.classList.add('text-emerald-600', 'dark:text-emerald-400', 'font-bold', 'bg-emerald-500/10');
+
+        if (ganttZoom === 'day') {
+          cell.innerHTML = `
+            <span class="text-[9px] uppercase text-slate-400 dark:text-slate-500">${curr.toLocaleDateString('de-DE', { weekday: 'short' })}</span>
+            <span class="${isTodayCell ? 'text-emerald-600 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-300'}">${curr.getDate()}</span>
+          `;
+        } else if (ganttZoom === 'week') {
+          if (dayIndex % 7 === 0 || curr.getDate() === 1) {
+            cell.innerHTML = `
+              <span class="text-[9px] text-slate-700 dark:text-slate-400 font-semibold">${curr.getDate()}.${curr.getMonth() + 1}.</span>
+              <span class="text-[8px] text-slate-400 dark:text-slate-500">KW ${getWeekNumber(curr)}</span>
+            `;
+          } else {
+            cell.innerHTML = `<span class="text-[9px] text-slate-400 dark:text-slate-500">${curr.getDate()}</span>`;
+          }
+        } else {
+          if (curr.getDate() === 1 || dayIndex === 0) {
+            cell.innerHTML = `<span class="text-[9px] font-semibold text-slate-700 dark:text-slate-300">${curr.toLocaleDateString('de-DE', { month: 'short' })}</span>`;
+          }
+        }
+
+        headerRow.appendChild(cell);
+        curr.setDate(curr.getDate() + 1);
+        dayIndex++;
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const diffToToday = (today - minDate) / (1000 * 60 * 60 * 24);
+      if (diffToToday >= 0 && diffToToday <= totalDays) {
+        todayIndicator.classList.remove('hidden');
+        todayIndicator.style.left = `${diffToToday * dayWidth + (dayWidth / 2)}px`;
+      } else {
+        todayIndicator.classList.add('hidden');
+      }
+
+      cachedBarPositions = {};
+
+      filteredTasks.forEach((task, idx) => {
+        const predTask = task.dependsOn ? tasks.find(p => p.id === task.dependsOn) : null;
+        const isSelf = linkingPredecessorId === task.id;
+        const isInvalid = linkingPredecessorId && (isSelf || wouldCauseCircularDependency(linkingPredecessorId, task.id));
+        const isValidTarget = linkingPredecessorId && !isInvalid;
+
+        // LEFT ROW
+        const labelRow = document.createElement('div');
+        labelRow.className = `gantt-left-row h-14 px-3 flex items-center justify-between text-xs transition border-b border-slate-200 dark:border-slate-800/60 ${isValidTarget ? 'valid-target bg-emerald-500/5' : ''} ${isInvalid ? 'invalid-target' : ''}`;
+        labelRow.draggable = !linkingPredecessorId;
+        labelRow.id = `gantt-label-${task.id}`;
+
+        if (!linkingPredecessorId) {
+          labelRow.ondragstart = (e) => handleLeftRowDragStart(e, idx);
+          labelRow.ondragover = (e) => handleLeftRowDragOver(e, idx);
+          labelRow.ondragleave = (e) => handleLeftRowDragLeave(e);
+          labelRow.ondrop = (e) => handleLeftRowDrop(e, idx);
+          labelRow.ondragend = (e) => handleLeftRowDragEnd(e);
+        }
+
+        labelRow.onclick = (e) => handleTaskClickInGantt(task.id, e);
+
+        labelRow.innerHTML = `
+          <div class="flex items-center gap-2 truncate pr-2">
+            <span class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-grab px-0.5" title="Aufgabe ziehen zum Sortieren / Gruppieren">
+              <i class="fa-solid fa-grip-vertical text-xs"></i>
+            </span>
+            <div class="truncate">
+              <div class="font-medium text-slate-900 dark:text-slate-200 truncate flex items-center gap-1.5" title="${escapeHTML(task.title)}">
+                <span>${escapeHTML(task.title)}</span>
+                ${predTask ? `
+                  <button type="button" onclick="removeDependency('${task.id}', event)" class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 hover:bg-rose-500/20 text-emerald-600 dark:text-emerald-400 hover:text-rose-600 dark:hover:text-rose-400 border border-emerald-500/20 font-normal flex items-center gap-1 transition" title="Abhängigkeit von '${escapeHTML(predTask.title)}' lösen">
+                    <i class="fa-solid fa-link text-[8px]"></i>
+                    <i class="fa-solid fa-xmark text-[8px]"></i>
+                  </button>
+                ` : ''}
+              </div>
+              <div class="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
+                <span>${escapeHTML(task.phase)}</span>
+                <span>•</span>
+                <span class="${task.status === 'Blockiert' ? 'text-rose-600 dark:text-rose-400 font-semibold' : ''}">${escapeHTML(task.status)}</span>
+                ${predTask ? `<span class="truncate text-slate-400" title="Nach: ${escapeHTML(predTask.title)}">↳ ${escapeHTML(predTask.title)}</span>` : ''}
+              </div>
+            </div>
+          </div>
+          <span class="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold flex-shrink-0">${task.progress || 0}%</span>
+        `;
+        labelList.appendChild(labelRow);
+
+        // RIGHT ROW
+        const row = document.createElement('div');
+        row.className = `gantt-row h-14 relative flex items-center border-b border-slate-100 dark:border-slate-800/60 ${isValidTarget ? 'valid-target bg-emerald-500/5' : ''} ${isInvalid ? 'invalid-target' : ''}`;
+        row.style.width = `${totalTimelineWidth}px`;
+        row.id = `gantt-row-${task.id}`;
+        row.onclick = (e) => handleTaskClickInGantt(task.id, e);
+
+        const taskStart = new Date(task.startDate || toISO(new Date()));
+        const taskEnd = new Date(task.endDate || task.startDate || toISO(new Date()));
+        taskStart.setHours(0, 0, 0, 0);
+        taskEnd.setHours(0, 0, 0, 0);
+
+        const startOffsetDays = (taskStart - minDate) / (1000 * 60 * 60 * 24);
+        const durationDays = Math.max(1, Math.round((taskEnd - taskStart) / (1000 * 60 * 60 * 24)) + 1);
+
+        const leftPx = Math.max(0, startOffsetDays * dayWidth);
+        const widthPx = Math.max(dayWidth * 0.8, durationDays * dayWidth);
+
+        cachedBarPositions[task.id] = {
+          startX: leftPx,
+          endX: leftPx + widthPx,
+          centerY: idx * 56 + 28,
+          title: task.title
+        };
+
+        let barColor = isDark ? 'bg-blue-600/90 border-blue-400 text-blue-100' : 'bg-blue-600 border-blue-700 text-white shadow-sm';
+        let progressFillColor = isDark ? 'bg-blue-400/50' : 'bg-blue-700/60';
+
+        if (task.status === 'Erledigt') {
+          barColor = isDark ? 'bg-emerald-600/90 border-emerald-400 text-emerald-100' : 'bg-emerald-600 border-emerald-700 text-white shadow-sm';
+          progressFillColor = isDark ? 'bg-emerald-400/50' : 'bg-emerald-700/60';
+        } else if (task.status === 'Blockiert') {
+          barColor = isDark ? 'bg-rose-600/90 border-rose-400 text-rose-100' : 'bg-rose-600 border-rose-700 text-white shadow-sm';
+          progressFillColor = isDark ? 'bg-rose-400/50' : 'bg-rose-700/60';
+        } else if (task.status === 'Offen') {
+          barColor = isDark ? 'bg-slate-700/90 border-slate-500 text-slate-200' : 'bg-slate-500 border-slate-600 text-white shadow-sm';
+          progressFillColor = isDark ? 'bg-slate-500/50' : 'bg-slate-600/60';
+        }
+
+        if (isSelf) {
+          barColor += ' ring-2 ring-emerald-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 animate-pulse';
+        }
+
+        const barWrapper = document.createElement('div');
+        barWrapper.className = 'gantt-bar-wrapper';
+        barWrapper.style.left = `${leftPx}px`;
+
+        barWrapper.innerHTML = `
+          <!-- The Main Time Bar -->
+          <div class="gantt-bar h-8 rounded-lg border flex items-center px-2.5 overflow-hidden text-xs select-none relative ${barColor}"
+               style="width: ${widthPx}px;"
+               onclick="handleTaskClickInGantt('${task.id}', event)"
+               title="${escapeHTML(task.title)} (${task.status})\n${formatDate(task.startDate)} bis ${formatDate(task.endDate)} - ${task.progress || 0}%">
+            <div class="absolute left-0 top-0 bottom-0 ${progressFillColor} pointer-events-none transition-all" style="width: ${task.progress || 0}%;"></div>
+            <div class="relative z-10 truncate flex items-center justify-between w-full font-medium">
+              <span class="truncate drop-shadow-xs">${escapeHTML(task.title)}</span>
+              <span class="ml-1.5 text-[10px] font-mono opacity-95">${task.progress || 0}%</span>
+            </div>
+          </div>
+
+          <!-- THE HOVER PLUS (+) CONNECTOR HANDLE -->
+          <button type="button" 
+                  onclick="startDependencyLinking('${task.id}', event)" 
+                  class="dep-connect-btn ml-1.5 w-6 h-6 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center text-xs font-bold shadow-lg shadow-rose-500/40 hover:scale-110 active:scale-95 transition-all cursor-pointer border border-white/40"
+                  title="Abhängigkeit erstellen: Klicke hier und danach auf den Nachfolger-Task!">
+            <i class="fa-solid fa-plus text-[11px] pointer-events-none"></i>
+          </button>
+        `;
+
+        row.appendChild(barWrapper);
+        bodyRows.appendChild(row);
+      });
+
+      // SVG curved arrows
+      filteredTasks.forEach(task => {
+        if (task.dependsOn && cachedBarPositions[task.dependsOn] && cachedBarPositions[task.id]) {
+          const from = cachedBarPositions[task.dependsOn];
+          const to = cachedBarPositions[task.id];
+
+          const startX = from.endX + 6;
+          const startY = from.centerY;
+          const endX = to.startX - 6;
+          const endY = to.centerY;
+
+          const deltaX = Math.max(25, (endX - startX) / 2);
+          const pathD = `M ${startX} ${startY} C ${startX + deltaX} ${startY}, ${endX - deltaX} ${endY}, ${endX} ${endY}`;
+
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.setAttribute("d", pathD);
+          path.setAttribute("fill", "none");
+          path.setAttribute("stroke", "#10b981");
+          path.setAttribute("stroke-width", "2");
+          path.setAttribute("stroke-dasharray", "4,3");
+          path.setAttribute("marker-end", "url(#arrowhead)");
+          path.setAttribute("class", "dependency-arrow-path");
+
+          const pred = tasks.find(p => p.id === task.dependsOn);
+          path.innerHTML = `<title>Verknüpfung: ${escapeHTML(pred ? pred.title : 'Vorgänger')} ➔ ${escapeHTML(task.title)} (Klick zum Löschen)</title>`;
+          path.onclick = (e) => removeDependency(task.id, e);
+
+          arrowGroup.appendChild(path);
+        }
+      });
+    }
+
+    function scrollGanttToToday() {
+      const todayIndicator = document.getElementById('ganttTodayIndicator');
+      const wrapper = document.getElementById('ganttTimelineWrapper');
+      if (todayIndicator && wrapper && !todayIndicator.classList.contains('hidden')) {
+        const left = parseFloat(todayIndicator.style.left || 0);
+        wrapper.scrollTo({
+          left: Math.max(0, left - wrapper.clientWidth / 2),
+          behavior: 'smooth'
+        });
+      }
+    }
+
+    function getWeekNumber(d) {
+      const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      const dayNum = date.getUTCDay() || 7;
+      date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+      return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+    }
+
+    function setGanttZoom(zoom) {
+      ganttZoom = zoom;
+      const dayBtn = document.getElementById('ganttZoomDay');
+      const weekBtn = document.getElementById('ganttZoomWeek');
+      const monthBtn = document.getElementById('ganttZoomMonth');
+
+      [dayBtn, weekBtn, monthBtn].forEach(b => {
+        b.className = 'px-2.5 py-1 rounded text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:white transition';
+      });
+
+      if (zoom === 'day') dayBtn.className = 'px-2.5 py-1 rounded bg-emerald-600 text-white font-medium shadow transition';
+      if (zoom === 'week') weekBtn.className = 'px-2.5 py-1 rounded bg-emerald-600 text-white font-medium shadow transition';
+      if (zoom === 'month') monthBtn.className = 'px-2.5 py-1 rounded bg-emerald-600 text-white font-medium shadow transition';
+
+      renderGantt(getFilteredTasks());
+    }
+
+    // View Switching (Gantt 2D, Kanban, Table)
+    function switchView(view) {
+      currentView = view;
+      const ganttView = document.getElementById('ganttView');
+      const kanbanView = document.getElementById('kanbanView');
+      const tableView = document.getElementById('tableView');
+
+      const btnGantt = document.getElementById('btnViewGantt');
+      const btnKanban = document.getElementById('btnViewKanban');
+      const btnTable = document.getElementById('btnViewTable');
+
+      const views = [ganttView, kanbanView, tableView].filter(Boolean);
+      const buttons = [btnGantt, btnKanban, btnTable].filter(Boolean);
+
+      views.forEach(v => v.classList.add('hidden'));
+      buttons.forEach(b => {
+        b.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200';
+      });
+
+      if (view === 'gantt' && ganttView && btnGantt) {
+        ganttView.classList.remove('hidden');
+        btnGantt.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all bg-emerald-600 text-white shadow-sm';
+        setTimeout(scrollGanttToToday, 60);
+      } else if (view === 'kanban' && kanbanView && btnKanban) {
+        kanbanView.classList.remove('hidden');
+        kanbanView.classList.add('grid');
+        btnKanban.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all bg-emerald-600 text-white shadow-sm';
+      } else if (view === 'table' && tableView && btnTable) {
+        tableView.classList.remove('hidden');
+        btnTable.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all bg-emerald-600 text-white shadow-sm';
+      }
+      render();
+    }
+
+    // Kanban Rendering
+    function renderKanban(filteredTasks) {
+      const colMap = {
+        'Offen': { el: document.getElementById('colOffen'), badge: document.getElementById('badgeCountOffen'), list: [] },
+        'In Arbeit': { el: document.getElementById('colInArbeit'), badge: document.getElementById('badgeCountInArbeit'), list: [] },
+        'Blockiert': { el: document.getElementById('colBlockiert'), badge: document.getElementById('badgeCountBlockiert'), list: [] },
+        'Erledigt': { el: document.getElementById('colErledigt'), badge: document.getElementById('badgeCountErledigt'), list: [] }
+      };
+
+      Object.values(colMap).forEach(col => col.el.innerHTML = '');
+
+      filteredTasks.forEach(task => {
+        if (colMap[task.status]) {
+          colMap[task.status].list.push(task);
+        } else {
+          colMap['Offen'].list.push(task);
+        }
+      });
+
+      Object.keys(colMap).forEach(key => {
+        const item = colMap[key];
+        item.badge.innerText = item.list.length;
+
+        if (item.list.length === 0) {
+          item.el.innerHTML = `
+            <div class="h-28 flex flex-col items-center justify-center border border-dashed border-slate-300 dark:border-slate-800/80 rounded-xl text-slate-400 dark:text-slate-600 text-xs">
+              <span>Keine Aufgaben</span>
+            </div>
+          `;
+          return;
+        }
+
+        item.list.forEach(t => {
+          const card = document.createElement('div');
+          card.className = 'kanban-card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 rounded-xl p-3.5 shadow-sm space-y-2.5';
+          card.draggable = true;
+          card.id = `card-${t.id}`;
+
+          card.ondragstart = (e) => handleDragStart(e, t.id);
+          card.ondragend = (e) => handleDragEnd(e);
+
+          const isOverdue = t.endDate && new Date(t.endDate) < new Date().setHours(0,0,0,0) && t.status !== 'Erledigt';
+          const predTask = t.dependsOn ? tasks.find(p => p.id === t.dependsOn) : null;
+
+          card.innerHTML = `
+            <div class="flex items-start justify-between gap-2">
+              <span class="text-xs font-semibold text-slate-900 dark:text-slate-100 leading-snug break-words flex-1">${escapeHTML(t.title)}</span>
+              <div class="flex items-center gap-1 opacity-70 hover:opacity-100 transition">
+                <button onclick="editTask('${t.id}')" title="Bearbeiten" class="p-1 hover:text-emerald-500 text-slate-400 dark:text-slate-400">
+                  <i class="fa-solid fa-pen text-xs"></i>
+                </button>
+                <button onclick="deleteTask('${t.id}')" title="Löschen" class="p-1 hover:text-rose-500 text-slate-400 dark:text-slate-400">
+                  <i class="fa-solid fa-trash-can text-xs"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="flex items-center flex-wrap gap-1.5">
+              ${getPhaseBadge(t.phase)}
+              ${getPriorityBadge(t.priority)}
+            </div>
+
+            ${predTask ? `
+              <div class="text-[10px] text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md flex items-center gap-1.5">
+                <i class="fa-solid fa-link text-[9px]"></i>
+                <span class="truncate">Wartet auf: ${escapeHTML(predTask.title)}</span>
+              </div>
+            ` : ''}
+
+            <!-- Progress bar -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-[10px] text-slate-500 dark:text-slate-400">
+                <span>Fortschritt</span>
+                <span class="font-semibold text-slate-800 dark:text-slate-200">${t.progress || 0}%</span>
+              </div>
+              <div class="w-full bg-slate-100 dark:bg-slate-950 rounded-full h-1.5 border border-slate-200 dark:border-slate-800">
+                <div class="bg-emerald-500 h-1.5 rounded-full transition-all" style="width: ${t.progress || 0}%"></div>
+              </div>
+            </div>
+
+            ${t.nextAction ? `
+              <div class="bg-slate-50 dark:bg-slate-950/70 rounded-lg p-2 border border-slate-200 dark:border-slate-800/60 text-[11px] text-slate-700 dark:text-slate-300 flex items-start gap-1.5">
+                <i class="fa-solid fa-arrow-right-long text-emerald-500 dark:text-emerald-400 mt-0.5"></i>
+                <div class="flex-1">
+                  <span class="text-slate-400 dark:text-slate-500 font-medium block text-[9px] uppercase tracking-wider">Nächster Schritt</span>
+                  <span class="leading-tight">${escapeHTML(t.nextAction)}</span>
+                </div>
+              </div>
+            ` : ''}
+
+            <div class="pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+              <div class="flex items-center gap-1.5 ${isOverdue ? 'text-rose-600 dark:text-rose-400 font-medium' : ''}">
+                <i class="fa-regular fa-clock text-xs"></i>
+                <span>${formatDate(t.endDate)}</span>
+                ${isOverdue ? '<span class="text-[10px] bg-rose-500/10 text-rose-600 dark:text-rose-300 px-1 rounded font-medium border border-rose-500/20">Fällig</span>' : ''}
+              </div>
+              <div>
+                <select onchange="updateTaskStatusDirectly('${t.id}', this.value)" class="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[10px] text-slate-700 dark:text-slate-300 rounded px-1.5 py-0.5 outline-none">
+                  <option value="Offen" ${t.status === 'Offen' ? 'selected' : ''}>Offen</option>
+                  <option value="In Arbeit" ${t.status === 'In Arbeit' ? 'selected' : ''}>In Arbeit</option>
+                  <option value="Blockiert" ${t.status === 'Blockiert' ? 'selected' : ''}>Blockiert</option>
+                  <option value="Erledigt" ${t.status === 'Erledigt' ? 'selected' : ''}>Erledigt</option>
+                </select>
+              </div>
+            </div>
+          `;
+          item.el.appendChild(card);
+        });
+      });
+    }
+
+    // Table Rendering
+    function renderTable(filteredTasks) {
+      const tbody = document.getElementById('tableBody');
+      const emptyState = document.getElementById('tableEmptyState');
+      tbody.innerHTML = '';
+
+      if (filteredTasks.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      emptyState.classList.add('hidden');
+
+      let list = [...filteredTasks];
+      if (sortColumn) {
+        list.sort((a, b) => {
+          let valA = a[sortColumn] || '';
+          let valB = b[sortColumn] || '';
+          if (sortColumn === 'priority') {
+            const weight = { 'Hoch': 3, 'Mittel': 2, 'Niedrig': 1 };
+            valA = weight[valA] || 0;
+            valB = weight[valB] || 0;
+          } else if (sortColumn === 'progress') {
+            valA = Number(valA) || 0;
+            valB = Number(valB) || 0;
+          }
+          if (valA < valB) return sortAsc ? -1 : 1;
+          if (valA > valB) return sortAsc ? 1 : -1;
+          return 0;
+        });
+      }
+
+      list.forEach(t => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 transition border-b border-slate-100 dark:border-slate-800/60';
+
+        const isOverdue = t.endDate && new Date(t.endDate) < new Date().setHours(0,0,0,0) && t.status !== 'Erledigt';
+        const predTask = t.dependsOn ? tasks.find(p => p.id === t.dependsOn) : null;
+
+        tr.innerHTML = `
+          <td class="py-3.5 px-4">
+            <div class="font-medium text-slate-900 dark:text-slate-100">${escapeHTML(t.title)}</div>
+            ${t.notes ? `<div class="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-xs mt-0.5">${escapeHTML(t.notes)}</div>` : ''}
+          </td>
+          <td class="py-3.5 px-4">${getPhaseBadge(t.phase)}</td>
+          <td class="py-3.5 px-4">${getPriorityBadge(t.priority)}</td>
+          <td class="py-3.5 px-4">
+            <select onchange="updateTaskStatusDirectly('${t.id}', this.value)" class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 rounded-lg px-2.5 py-1 outline-none">
+              <option value="Offen" ${t.status === 'Offen' ? 'selected' : ''}>Offen</option>
+              <option value="In Arbeit" ${t.status === 'In Arbeit' ? 'selected' : ''}>In Arbeit</option>
+              <option value="Blockiert" ${t.status === 'Blockiert' ? 'selected' : ''}>Blockiert</option>
+              <option value="Erledigt" ${t.status === 'Erledigt' ? 'selected' : ''}>Erledigt</option>
+            </select>
+          </td>
+          <td class="py-3.5 px-4">
+            <div class="flex items-center gap-2">
+              <div class="w-16 bg-slate-100 dark:bg-slate-950 rounded-full h-1.5 border border-slate-200 dark:border-slate-800 overflow-hidden">
+                <div class="bg-emerald-500 h-1.5 rounded-full" style="width: ${t.progress || 0}%"></div>
+              </div>
+              <span class="text-xs text-slate-600 dark:text-slate-400 font-mono">${t.progress || 0}%</span>
+            </div>
+          </td>
+          <td class="py-3.5 px-4 text-xs text-slate-700 dark:text-slate-300">
+            <div class="flex items-center gap-1.5 ${isOverdue ? 'text-rose-600 dark:text-rose-400 font-medium' : ''}">
+              <span>${formatDate(t.startDate)} – ${formatDate(t.endDate)}</span>
+              ${isOverdue ? '<i class="fa-solid fa-triangle-exclamation text-rose-500 text-[10px]" title="Überfällig"></i>' : ''}
+            </div>
+          </td>
+          <td class="py-3.5 px-4 text-xs">
+            ${predTask ? `
+              <div class="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                <i class="fa-solid fa-link text-[10px]"></i>
+                <span class="truncate max-w-[140px]" title="${escapeHTML(predTask.title)}">${escapeHTML(predTask.title)}</span>
+                <button onclick="removeDependency('${t.id}', event)" class="hover:text-rose-500 p-0.5 text-slate-400" title="Verknüpfung aufheben">
+                  <i class="fa-solid fa-xmark text-[10px]"></i>
+                </button>
+              </div>
+            ` : '<span class="text-slate-400 dark:text-slate-600">-</span>'}
+          </td>
+          <td class="py-3.5 px-4">
+            <div class="text-xs text-slate-700 dark:text-slate-300 flex items-center gap-1.5 max-w-xs truncate">
+              ${t.nextAction ? `<i class="fa-solid fa-arrow-right text-emerald-500 dark:text-emerald-400 text-[10px]"></i> ${escapeHTML(t.nextAction)}` : '<span class="text-slate-400 dark:text-slate-600">-</span>'}
+            </div>
+          </td>
+          <td class="py-3.5 px-4 text-right">
+            <div class="flex items-center justify-end gap-1.5">
+              <button onclick="editTask('${t.id}')" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-emerald-500 transition" title="Bearbeiten">
+                <i class="fa-solid fa-pen text-xs"></i>
+              </button>
+              <button onclick="deleteTask('${t.id}')" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-rose-500 transition" title="Löschen">
+                <i class="fa-solid fa-trash-can text-xs"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function render() {
+      const filtered = getFilteredTasks();
+      updateMetrics();
+
+      if (currentView === 'gantt') {
+        renderGantt(filtered);
+      } else if (currentView === 'kanban') {
+        renderKanban(filtered);
+      } else if (currentView === 'table') {
+        renderTable(filtered);
+      }
+    }
+
+    function sortTable(column) {
+      if (sortColumn === column) {
+        sortAsc = !sortAsc;
+      } else {
+        sortColumn = column;
+        sortAsc = true;
+      }
+
+      ['title', 'phase', 'priority', 'status', 'progress', 'startDate'].forEach(col => {
+        const icon = document.getElementById(`sortIcon_${col}`);
+        if (icon) {
+          if (col === sortColumn) {
+            icon.className = sortAsc ? 'fa-solid fa-sort-up ml-1 text-emerald-500' : 'fa-solid fa-sort-down ml-1 text-emerald-500';
+          } else {
+            icon.className = 'fa-solid fa-sort ml-1 text-slate-300 dark:text-slate-600';
+          }
+        }
+      });
+      render();
+    }
+
+    // Drag & Drop
+    function handleDragStart(e, id) {
+      draggedTaskId = id;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => {
+        const el = document.getElementById(`card-${id}`);
+        if (el) el.classList.add('dragging');
+      }, 0);
+    }
+
+    function handleDragEnd(e) {
+      const el = document.getElementById(`card-${draggedTaskId}`);
+      if (el) el.classList.remove('dragging');
+      draggedTaskId = null;
+      document.querySelectorAll('.kanban-column').forEach(c => c.classList.remove('drop-highlight'));
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const col = e.currentTarget;
+      if (!col.classList.contains('drop-highlight')) {
+        col.classList.add('drop-highlight');
+      }
+    }
+
+    function handleDragLeave(e) {
+      e.currentTarget.classList.remove('drop-highlight');
+    }
+
+    function handleDrop(e, newStatus) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('drop-highlight');
+      if (!draggedTaskId) return;
+
+      const taskIndex = tasks.findIndex(t => t.id === draggedTaskId);
+      if (taskIndex !== -1 && tasks[taskIndex].status !== newStatus) {
+        tasks[taskIndex].status = newStatus;
+        if (newStatus === 'Erledigt') tasks[taskIndex].progress = 100;
+        if (newStatus === 'Offen' && tasks[taskIndex].progress === 100) tasks[taskIndex].progress = 0;
+        saveTasks();
+        render();
+        showToast(`Status auf "${newStatus}" gesetzt`);
+      }
+    }
+
+    function updateTaskStatusDirectly(id, newStatus) {
+      const task = tasks.find(t => t.id === id);
+      if (task) {
+        task.status = newStatus;
+        if (newStatus === 'Erledigt') task.progress = 100;
+        if (newStatus === 'Offen' && task.progress === 100) task.progress = 0;
+        saveTasks();
+        render();
+        showToast(`Status aktualisiert: ${newStatus}`);
+      }
+    }
+
+    function updateProgressDisplay(val) {
+      document.getElementById('progressValueText').innerText = `${val}%`;
+    }
+
+    function syncStatusProgress() {
+      const status = document.getElementById('taskStatus').value;
+      const progressInput = document.getElementById('taskProgress');
+      if (status === 'Erledigt') {
+        progressInput.value = 100;
+      } else if (status === 'Offen' && progressInput.value == 100) {
+        progressInput.value = 0;
+      }
+      updateProgressDisplay(progressInput.value);
+    }
+
+    function populatePredecessorDropdown(currentId) {
+      const select = document.getElementById('taskPredecessor');
+      select.innerHTML = '<option value="">-- Keine Abhängigkeit (Startet unabhängig) --</option>';
+
+      tasks.forEach(t => {
+        if (t.id !== currentId) {
+          const opt = document.createElement('option');
+          opt.value = t.id;
+          opt.innerText = `${t.title} (${t.phase} - ${formatDate(t.endDate)})`;
+          select.appendChild(opt);
+        }
+      });
+    }
+
+    function clearPredecessorSelection() {
+      document.getElementById('taskPredecessor').value = '';
+    }
+
+    function openTaskModal(isEdit = false) {
+      const modal = document.getElementById('taskModal');
+      const title = document.getElementById('modalTitle');
+      if (!isEdit) {
+        document.getElementById('taskForm').reset();
+        document.getElementById('taskId').value = '';
+        document.getElementById('taskStartDate').value = toISO(new Date());
+        document.getElementById('taskEndDate').value = addDays(5);
+        document.getElementById('taskProgress').value = 0;
+        updateProgressDisplay(0);
+        populatePredecessorDropdown('');
+        title.innerHTML = '<i class="fa-solid fa-plus text-emerald-500"></i> Neue Aufgabe erstellen';
+      }
+      modal.classList.remove('hidden');
+    }
+
+    function closeTaskModal() {
+      document.getElementById('taskModal').classList.add('hidden');
+    }
+
+    function editTask(id) {
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+
+      populatePredecessorDropdown(task.id);
+
+      document.getElementById('taskId').value = task.id;
+      document.getElementById('taskTitle').value = task.title || '';
+      document.getElementById('taskPredecessor').value = task.dependsOn || '';
+      document.getElementById('taskPhase').value = task.phase || 'Konzept';
+      document.getElementById('taskPriority').value = task.priority || 'Mittel';
+      document.getElementById('taskStatus').value = task.status || 'Offen';
+      document.getElementById('taskProgress').value = task.progress || 0;
+      updateProgressDisplay(task.progress || 0);
+
+      document.getElementById('taskStartDate').value = task.startDate || toISO(new Date());
+      document.getElementById('taskEndDate').value = task.endDate || task.deadline || addDays(5);
+
+      document.getElementById('taskNextAction').value = task.nextAction || '';
+      document.getElementById('taskNotes').value = task.notes || '';
+
+      document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-emerald-500"></i> Aufgabe bearbeiten';
+      document.getElementById('taskModal').classList.remove('hidden');
+    }
+
+    function deleteTask(id) {
+      const task = tasks.find(t => t.id === id);
+      const name = task ? task.title : 'Aufgabe';
+
+      tasks.forEach(t => {
+        if (t.dependsOn === id) t.dependsOn = '';
+      });
+
+      tasks = tasks.filter(t => t.id !== id);
+      saveTasks();
+      render();
+      showToast(`"${name}" wurde gelöscht.`);
+    }
+
+    function handleTaskSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('taskId').value;
+      const title = document.getElementById('taskTitle').value.trim();
+      const dependsOn = document.getElementById('taskPredecessor').value;
+      const phase = document.getElementById('taskPhase').value;
+      const priority = document.getElementById('taskPriority').value;
+      const status = document.getElementById('taskStatus').value;
+      const progress = parseInt(document.getElementById('taskProgress').value, 10) || 0;
+      const startDate = document.getElementById('taskStartDate').value;
+      const endDate = document.getElementById('taskEndDate').value;
+      const nextAction = document.getElementById('taskNextAction').value.trim();
+      const notes = document.getElementById('taskNotes').value.trim();
+
+      if (id) {
+        const index = tasks.findIndex(t => t.id === id);
+        if (index !== -1) {
+          tasks[index] = { 
+            ...tasks[index], 
+            title, dependsOn, phase, priority, status, progress, startDate, endDate, nextAction, notes 
+          };
+          cascadeDependentTasks(id);
+          showToast('Aufgabe aktualisiert');
+        }
+      } else {
+        const newTask = {
+          id: 't-' + Date.now(),
+          title, dependsOn, phase, priority, status, progress, startDate, endDate, nextAction, notes
+        };
+        tasks.push(newTask);
+        showToast('Neue Aufgabe hinzugefügt');
+      }
+
+      saveTasks();
+      closeTaskModal();
+      render();
+    }
+
+    function toggleMenu() {
+      const menu = document.getElementById('dropdownMenu');
+      menu.classList.toggle('hidden');
+    }
+
+    window.onclick = function(event) {
+      if (!event.target.closest('#menuButton') && !event.target.closest('#dropdownMenu')) {
+        const menu = document.getElementById('dropdownMenu');
+        if (menu && !menu.classList.contains('hidden')) {
+          menu.classList.add('hidden');
+        }
+      }
+    };
+
+    function exportJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tasks, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `${currentWorkspace.projectName}_backup_${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast(`JSON-Export für ${currentWorkspace.projectName} heruntergeladen`);
+    }
+
+    function exportCSV() {
+      if (tasks.length === 0) {
+        showToast('Keine Daten zum Exportieren vorhanden', 'error');
+        return;
+      }
+      const headers = ['ID', 'Titel', 'Abhaengig_von', 'Phase', 'Prioritaet', 'Status', 'Fortschritt_Prozent', 'Startdatum', 'Enddatum', 'Naechster_Schritt', 'Notizen'];
+      const rows = tasks.map(t => [
+        t.id,
+        `"${(t.title || '').replace(/"/g, '""')}"`,
+        `"${(t.dependsOn || '').replace(/"/g, '""')}"`,
+        `"${(t.phase || '').replace(/"/g, '""')}"`,
+        `"${(t.priority || '').replace(/"/g, '""')}"`,
+        `"${(t.status || '').replace(/"/g, '""')}"`,
+        t.progress || 0,
+        `"${t.startDate || ''}"`,
+        `"${t.endDate || ''}"`,
+        `"${(t.nextAction || '').replace(/"/g, '""')}"`,
+        `"${(t.notes || '').replace(/"/g, '""')}"`
+      ]);
+
+      const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(';'), ...rows.map(e => e.join(';'))].join('\n');
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", encodeURI(csvContent));
+      downloadAnchor.setAttribute("download", `${currentWorkspace.projectName}_aufgaben_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast('CSV-Export heruntergeladen');
+    }
+
+    function buildBaseSystemPrompt(customCommand = '') {
+      const todayISO = toISO(new Date());
+      const baseInstructions = `Du bist ein spezialisierter Assistent für Projektmanagement, Kanban und 2D/3D Gantt-Charts.
+Erstelle für jede Aufgabe ausschließlich ein valides JSON-Array ohne umschließenden Markdown-Text oder Begrüßung.
+
+FORMAT-VORGABEN:
+- "title": Kurzer prägnanter Aufgabentitel (String)
+- "depends_on": Optional Name oder ID der Vorgänger-Aufgabe (String)
+- "category": Genau einer der folgenden Werte: "Konzept" | "Vorbereitung" | "Umsetzung" | "Schnittstellen" | "Inbetriebnahme" | "Doku"
+- "priority": Genau einer der Werte: "high" | "medium" | "low" (oder "Hoch" | "Mittel" | "Niedrig")
+- "status": Genau einer der Werte: "todo" | "in_progress" | "blocked" | "done" (oder "Offen" | "In Arbeit" | "Blockiert" | "Erledigt")
+- "progress": Ganzzahl 0 bis 100
+- "startDate": Datum im Format "YYYY-MM-DD" (Standard: heute = ${todayISO})
+- "endDate": Zieldatum im Format "YYYY-MM-DD"
+- "next_step": Konkreter, nächster auszuführender Arbeitsschritt
+- "notes": Wichtige Details, Blocker-Gründe oder Spezifikationen`;
+
+      if (customCommand && customCommand.trim().length > 0) {
+        return `${baseInstructions}
+
+AUFGABENBESCHREIBUNG / BENUTZERBEFEHL:
+"${customCommand.trim()}"
+
+Erzeuge dafür nun das passende JSON-Objekt im definierten Format.`;
+      }
+
+      return baseInstructions;
+    }
+
+    function updateDynamicPromptText() {
+      const customCmd = document.getElementById('aiCustomCommandInput').value;
+      const fullPrompt = buildBaseSystemPrompt(customCmd);
+      const previewArea = document.getElementById('aiPromptPreviewArea');
+      previewArea.value = fullPrompt;
+      document.getElementById('promptCharCount').innerText = `${fullPrompt.length} Zeichen`;
+    }
+
+    function clearCustomCommand() {
+      document.getElementById('aiCustomCommandInput').value = '';
+      updateDynamicPromptText();
+    }
+
+    function copySystemPromptToClipboard() {
+      const previewArea = document.getElementById('aiPromptPreviewArea');
+      previewArea.select();
+      previewArea.setSelectionRange(0, 99999);
+
+      try {
+        document.execCommand('copy');
+        const btn = document.getElementById('btnCopyPrompt');
+        btn.innerHTML = '<i class="fa-solid fa-check text-emerald-300"></i> Kopiert!';
+        btn.classList.remove('bg-indigo-600');
+        btn.classList.add('bg-emerald-600');
+        showToast('KI-Prompt in Zwischenablage kopiert');
+        setTimeout(() => {
+          btn.innerHTML = '<i class="fa-regular fa-copy"></i> <span>Prompt kopieren</span>';
+          btn.classList.add('bg-indigo-600');
+          btn.classList.remove('bg-emerald-600');
+        }, 2200);
+      } catch (err) {
+        showToast('Fehler beim Kopieren in Zwischenablage', 'error');
+      }
+    }
+
+    function pasteSampleToInput() {
+      const sample = [
+        {
+          "title": "FG14 Schublade Klopfer programmieren",
+          "category": "Umsetzung",
+          "priority": "high",
+          "status": "todo",
+          "progress": 0,
+          "startDate": toISO(new Date()),
+          "endDate": addDays(4),
+          "next_step": "Zylinder-Ansteuerung in SPS schreiben",
+          "notes": "Voraussetzung für Testlauf"
+        },
+        {
+          "title": "Klopfer-Zyklus testen",
+          "category": "Inbetriebnahme",
+          "priority": "high",
+          "status": "todo",
+          "depends_on": "FG14 Schublade Klopfer programmieren",
+          "progress": 0,
+          "startDate": addDays(5),
+          "endDate": addDays(9),
+          "next_step": "Endlagensensorik und Taktzeit messen",
+          "notes": "Startet unmittelbar nach Abschluss der Klopfer-Programmierung"
+        }
+      ];
+      document.getElementById('aiJsonInput').value = JSON.stringify(sample, null, 2);
+    }
+
+    function openAiImportModal() {
+      updateDynamicPromptText();
+      document.getElementById('aiImportModal').classList.remove('hidden');
+    }
+
+    function closeAiImportModal() {
+      document.getElementById('aiImportModal').classList.add('hidden');
+    }
+
+    function normalizePriority(val) {
+      if (!val) return 'Mittel';
+      const s = String(val).toLowerCase().trim();
+      if (s === 'high' || s === 'hoch') return 'Hoch';
+      if (s === 'low' || s === 'niedrig' || s === 'tief') return 'Niedrig';
+      return 'Mittel';
+    }
+
+    function normalizeStatus(val) {
+      if (!val) return 'Offen';
+      const s = String(val).toLowerCase().trim();
+      if (s === 'in_progress' || s === 'in progress' || s === 'in arbeit' || s === 'progress') return 'In Arbeit';
+      if (s === 'blocked' || s === 'blockiert' || s === 'block') return 'Blockiert';
+      if (s === 'done' || s === 'erledigt' || s === 'completed' || s === 'finished') return 'Erledigt';
+      return 'Offen';
+    }
+
+    function normalizeCategory(val) {
+      if (!val) return 'Konzept';
+      const s = String(val).trim();
+      const valid = ['Konzept', 'Vorbereitung', 'Umsetzung', 'Schnittstellen', 'Inbetriebnahme', 'Doku'];
+      const match = valid.find(v => v.toLowerCase() === s.toLowerCase());
+      return match || 'Schnittstellen';
+    }
+
+    function processAiJsonImport() {
+      let rawText = document.getElementById('aiJsonInput').value.trim();
+      if (!rawText) {
+        showToast('Bitte Text oder JSON in Schritt 2 einfügen', 'error');
+        return;
+      }
+
+      if (rawText.startsWith('```')) {
+        rawText = rawText.replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/i, '').trim();
+      }
+
+      try {
+        let parsed = JSON.parse(rawText);
+        if (!Array.isArray(parsed)) {
+          parsed = [parsed];
+        }
+
+        let addedCount = 0;
+        const newlyAdded = [];
+
+        parsed.forEach(item => {
+          const title = item.title || item.name || item.aufgabe || item.arbeitspaket;
+          if (!title) return;
+
+          const normStatus = normalizeStatus(item.status);
+          const normPriority = normalizePriority(item.priority || item.prio);
+          const normPhase = normalizeCategory(item.category || item.phase || item.kategorie);
+
+          let progressVal = typeof item.progress === 'number' ? Math.max(0, Math.min(100, item.progress)) : null;
+          if (progressVal === null) {
+            if (normStatus === 'Erledigt') progressVal = 100;
+            else if (normStatus === 'In Arbeit') progressVal = 50;
+            else if (normStatus === 'Blockiert') progressVal = 20;
+            else progressVal = 0;
+          }
+
+          const newTask = {
+            id: 't-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+            title: title.trim(),
+            dependsOn: item.depends_on || item.dependsOn || item.vorgaenger || '',
+            phase: normPhase,
+            priority: normPriority,
+            status: normStatus,
+            progress: progressVal,
+            startDate: item.startDate || item.start || toISO(new Date()),
+            endDate: item.endDate || item.deadline || item.ende || addDays(7),
+            nextAction: item.next_step || item.nextAction || item.naechsterSchritt || item.action || '',
+            notes: item.notes || item.notizen || item.details || ''
+          };
+
+          tasks.push(newTask);
+          newlyAdded.push(newTask);
+          addedCount++;
+        });
+
+        // Resolve title-based dependency names to IDs
+        newlyAdded.forEach(task => {
+          if (task.dependsOn) {
+            const matchedParent = tasks.find(p => p.id !== task.id && (p.id === task.dependsOn || p.title.toLowerCase() === task.dependsOn.toLowerCase()));
+            if (matchedParent) {
+              task.dependsOn = matchedParent.id;
+            } else {
+              task.dependsOn = '';
+            }
+          }
+        });
+
+        if (addedCount > 0) {
+          saveTasks();
+          render();
+          closeAiImportModal();
+          showToast(`${addedCount} Aufgabe(n) erfolgreich ins Board übernommen`);
+        } else {
+          showToast('Keine gültige Aufgabenstruktur gefunden', 'error');
+        }
+      } catch (err) {
+        showToast('JSON-Syntax fehlerhaft. Bitte JSON prüfen.', 'error');
+      }
+    }
+
+    function importJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (Array.isArray(imported)) {
+            tasks = imported.map(t => ({
+              ...t,
+              startDate: t.startDate || t.deadline || toISO(new Date()),
+              endDate: t.endDate || t.deadline || addDays(5),
+              dependsOn: t.dependsOn || t.depends_on || '',
+              progress: typeof t.progress === 'number' ? t.progress : (t.status === 'Erledigt' ? 100 : 0)
+            }));
+            saveTasks();
+            render();
+            showToast(`${imported.length} Aufgaben erfolgreich importiert`);
+          } else {
+            showToast('Ungültiges Dateiformat', 'error');
+          }
+        } catch (err) {
+          showToast('Fehler beim Einlesen der JSON-Datei', 'error');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function resetToSampleData() {
+      tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
+      saveTasks();
+      render();
+      showToast('Demodaten wiederhergestellt');
+    }
+
+    window.onload = function() {
+      loadTasks();
+    };
+  </script>
+</body>
+</html>
