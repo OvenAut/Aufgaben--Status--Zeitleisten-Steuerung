@@ -378,7 +378,7 @@
     <section class="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 flex flex-wrap items-center gap-2.5 shadow-xs flex-shrink-0">
       <div class="min-w-[200px] flex-1 relative">
         <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-xs"></i>
-        <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Suchen nach Titel, Notizen oder nächstem Schritt..." 
+        <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Suchen nach Titel, Gruppe, Verantwortlichem, Notizen …" 
                class="w-full pl-8 pr-3 py-1.5 rounded-lg bg-slate-50 dark:bg-[#030712] border border-slate-200 dark:border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 outline-none transition" />
       </div>
 
@@ -424,8 +424,10 @@
           <option value="ALL">Alle Status</option>
           <option value="Offen">Offen / Backlog</option>
           <option value="In Arbeit">In Arbeit</option>
+          <option value="Im Testen">Im Testen</option>
           <option value="Blockiert">Blockiert</option>
           <option value="Erledigt">Erledigt</option>
+          <option value="Abgebrochen">Abgebrochen</option>
         </select>
       </div>
 
@@ -441,11 +443,16 @@
       <div class="p-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-[#030712]/90 flex flex-wrap items-center justify-between gap-2.5 text-xs flex-shrink-0">
         <div class="flex items-center gap-2">
           <span class="text-slate-600 dark:text-slate-400 font-medium">Zeitskala:</span>
-          <div class="bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center">
-            <button onclick="setGanttZoom('day')" id="ganttZoomDay" class="px-2 py-1 rounded text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:white transition">Tage</button>
-            <button onclick="setGanttZoom('week')" id="ganttZoomWeek" class="px-2.5 py-1 rounded bg-emerald-600 text-white font-medium shadow transition">Wochen</button>
-            <button onclick="setGanttZoom('month')" id="ganttZoomMonth" class="px-2 py-1 rounded text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:white transition">Monate</button>
+          <div class="bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center" title="Zoom: Strg/⌘ + Mausrad über der Zeitleiste">
+            <button onclick="zoomGantt(1 / 1.4)" class="w-7 py-1 rounded text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition" title="Rauszoomen – mehr Zeitraum anzeigen"><i class="fa-solid fa-magnifying-glass-minus text-[11px]"></i></button>
+            <button onclick="setGanttZoom('day')" id="ganttZoomDay" data-zoom-preset class="px-2 py-1 rounded transition">Tage</button>
+            <button onclick="setGanttZoom('week')" id="ganttZoomWeek" data-zoom-preset class="px-2 py-1 rounded transition">Wochen</button>
+            <button onclick="setGanttZoom('month')" id="ganttZoomMonth" data-zoom-preset class="px-2 py-1 rounded transition">Monate</button>
+            <button onclick="setGanttZoom('quarter')" id="ganttZoomQuarter" data-zoom-preset class="px-2 py-1 rounded transition">Quartal</button>
+            <button onclick="setGanttZoom('year')" id="ganttZoomYear" data-zoom-preset class="px-2 py-1 rounded transition">Jahr</button>
+            <button onclick="zoomGantt(1.4)" class="w-7 py-1 rounded text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition" title="Reinzoomen – weniger Zeitraum, mehr Details"><i class="fa-solid fa-magnifying-glass-plus text-[11px]"></i></button>
           </div>
+          <span id="ganttZoomInfo" class="text-[11px] text-slate-500 dark:text-slate-400 font-mono whitespace-nowrap" title="Sichtbarer Zeitraum"></span>
           <button onclick="scrollGanttToToday()" class="ml-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-400 border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition shadow-xs">
             <i class="fa-solid fa-bullseye text-[10px]"></i> Heute fokussieren
           </button>
@@ -460,9 +467,11 @@
         <!-- Legend -->
         <div class="flex items-center flex-wrap gap-3 text-[11px] text-slate-500 dark:text-slate-400">
           <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-blue-500 inline-block"></span> In Arbeit</div>
+          <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-violet-500 inline-block"></span> Im Testen</div>
           <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-rose-500 inline-block"></span> Blockiert</div>
           <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-emerald-500 inline-block"></span> Erledigt</div>
           <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-slate-400 dark:bg-slate-600 inline-block"></span> Offen</div>
+          <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rotate-45 bg-amber-500 inline-block"></span> Meilenstein</div>
           <span class="w-px h-3.5 bg-slate-300 dark:bg-slate-700"></span>
           <div class="flex items-center gap-1.5" title="Vorgänger erledigt – Nachfolger ist freigegeben"><svg width="22" height="8"><line x1="0" y1="4" x2="16" y2="4" stroke="#10b981" stroke-width="2"/><path d="M15 0.5 L21 4 L15 7.5 z" fill="#10b981"/></svg> Freigegeben</div>
           <div class="flex items-center gap-1.5" title="Vorgänger läuft noch – Nachfolger wartet"><svg width="22" height="8"><line x1="0" y1="4" x2="16" y2="4" stroke="#6366f1" stroke-width="2"/><path d="M15 0.5 L21 4 L15 7.5 z" fill="#6366f1"/></svg> Wartet</div>
@@ -476,7 +485,7 @@
       <div class="flex-1 flex overflow-hidden custom-scroll min-h-0 relative" id="ganttScrollContainer">
         <!-- Gantt Left Side: Task Names & Phasen (Draggable) -->
         <div id="ganttLabelScroll" class="w-64 sm:w-80 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-[#0b0f19] z-20 flex flex-col select-none overflow-y-auto custom-scroll">
-          <div class="h-12 flex-shrink-0 px-3.5 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-600 dark:text-slate-400 text-xs flex items-center justify-between uppercase tracking-wider bg-slate-100/90 dark:bg-[#030712] sticky top-0 z-10">
+          <div class="h-12 flex-shrink-0 px-3.5 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-600 dark:text-slate-400 text-xs flex items-center justify-between uppercase tracking-wider bg-slate-100 dark:bg-[#030712] sticky top-0 z-10">
             <span class="flex items-center gap-1.5"><i class="fa-solid fa-grip-vertical text-slate-400 text-[10px]"></i> Gruppe / Aufgabe</span>
             <span>Fortschritt</span>
           </div>
@@ -487,7 +496,7 @@
         <div class="flex-1 overflow-x-auto overflow-y-auto custom-scroll relative bg-white dark:bg-[#030712]/90" id="ganttTimelineWrapper">
           <div id="ganttInnerTimeline" class="relative min-w-full">
             <!-- Timeline Header (Dates/Weeks/Months) -->
-            <div id="ganttHeaderRow" class="h-12 sticky top-0 bg-slate-100/95 dark:bg-[#030712]/95 border-b border-slate-200 dark:border-slate-800 z-10 flex"></div>
+            <div id="ganttHeaderRow" class="h-12 sticky top-0 bg-slate-100 dark:bg-[#030712] border-b border-slate-200 dark:border-slate-800 z-10 flex"></div>
 
             <!-- Grid Rows, Bars and Dependency Connectors (own stacking context below the sticky header) -->
             <div id="ganttBody" class="relative z-0">
@@ -521,7 +530,7 @@
     </section>
 
     <!-- VIEW 2: FULL-WIDTH KANBAN BOARD -->
-    <section id="kanbanView" class="hidden grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3.5 flex-1 w-full min-h-0 overflow-y-auto custom-scroll pb-2">
+    <section id="kanbanView" class="hidden grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3.5 flex-1 w-full min-h-0 overflow-y-auto custom-scroll pb-2">
       <!-- Offen -->
       <div class="kanban-column bg-slate-100/70 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/80 rounded-xl p-3 flex flex-col h-full min-h-[360px]"
            ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'Offen')">
@@ -548,6 +557,19 @@
         <div id="colInArbeit" class="flex-1 overflow-y-auto space-y-2.5 custom-scroll pr-1"></div>
       </div>
 
+      <!-- Im Testen -->
+      <div class="kanban-column bg-slate-100/70 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/80 rounded-xl p-3 flex flex-col h-full min-h-[360px]"
+           ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'Im Testen')">
+        <div class="flex items-center justify-between px-2 py-1 mb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-violet-500"></span>
+            <h2 class="font-semibold text-xs sm:text-sm text-slate-800 dark:text-slate-200">Im Testen</h2>
+          </div>
+          <span id="badgeCountImTesten" class="text-xs px-2 py-0.5 rounded-full bg-violet-50 dark:bg-violet-950/80 text-violet-700 dark:text-violet-300 font-semibold border border-violet-200 dark:border-violet-800/40">0</span>
+        </div>
+        <div id="colImTesten" class="flex-1 overflow-y-auto space-y-2.5 custom-scroll pr-1"></div>
+      </div>
+
       <!-- Blockiert -->
       <div class="kanban-column bg-slate-100/70 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/80 rounded-xl p-3 flex flex-col h-full min-h-[360px]"
            ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'Blockiert')">
@@ -567,7 +589,7 @@
         <div class="flex items-center justify-between px-2 py-1 mb-2">
           <div class="flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-            <h2 class="font-semibold text-xs sm:text-sm text-slate-800 dark:text-slate-200">Erledigt</h2>
+            <h2 class="font-semibold text-xs sm:text-sm text-slate-800 dark:text-slate-200">Erledigt <span class="font-normal text-slate-400">/ Abgebrochen</span></h2>
           </div>
           <span id="badgeCountErledigt" class="text-xs px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 font-semibold border border-emerald-200 dark:border-emerald-800/40">0</span>
         </div>
@@ -636,12 +658,20 @@
                  class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none" />
         </div>
 
-        <!-- Group -->
-        <div>
-          <label class="block text-slate-700 dark:text-slate-300 font-medium mb-1 flex items-center gap-1.5"><i class="fa-solid fa-object-group text-emerald-500"></i> Gruppe / Baugruppe</label>
-          <input type="text" id="taskGroup" list="groupOptions" placeholder="z. B. FG14 Klopfer, Umrüstung, Maschinentests …"
-                 class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none" />
-          <datalist id="groupOptions"></datalist>
+        <!-- Group & Owner -->
+        <div class="grid grid-cols-1 sm:grid-cols-[1fr_9rem] gap-3.5">
+          <div>
+            <label class="block text-slate-700 dark:text-slate-300 font-medium mb-1 flex items-center gap-1.5"><i class="fa-solid fa-object-group text-emerald-500"></i> Gruppe / Baugruppe</label>
+            <input type="text" id="taskGroup" list="groupOptions" placeholder="z. B. FG14, FG15, Roboter 4 …"
+                   class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none" />
+            <datalist id="groupOptions"></datalist>
+          </div>
+          <div>
+            <label class="block text-slate-700 dark:text-slate-300 font-medium mb-1 flex items-center gap-1.5"><i class="fa-solid fa-user text-emerald-500"></i> Verantwortlich</label>
+            <input type="text" id="taskOwner" list="ownerOptions" placeholder="z. B. OSO"
+                   class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none" />
+            <datalist id="ownerOptions"></datalist>
+          </div>
         </div>
 
         <!-- Dependency Predecessor Selector (mehrere Vorgänger möglich) -->
@@ -661,6 +691,7 @@
           <div>
             <label class="block text-slate-700 dark:text-slate-300 font-medium mb-1">Kategorie / Phase</label>
             <select id="taskPhase" class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 text-slate-900 dark:text-slate-100 outline-none">
+              <option value="">– keine Phase –</option>
               <option value="Konzept">Konzept</option>
               <option value="Vorbereitung">Vorbereitung</option>
               <option value="Umsetzung">Umsetzung</option>
@@ -686,8 +717,10 @@
             <select id="taskStatus" onchange="syncStatusProgress()" class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 text-slate-900 dark:text-slate-100 outline-none">
               <option value="Offen">Offen / Backlog</option>
               <option value="In Arbeit">In Arbeit</option>
+              <option value="Im Testen">Im Testen</option>
               <option value="Blockiert">Blockiert</option>
               <option value="Erledigt">Erledigt</option>
+              <option value="Abgebrochen">Abgebrochen</option>
             </select>
           </div>
           <div>
@@ -713,6 +746,10 @@
                    class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 text-slate-900 dark:text-slate-100 outline-none" />
           </div>
         </div>
+        <label class="flex items-center gap-2 text-slate-700 dark:text-slate-300 cursor-pointer w-max">
+          <input type="checkbox" id="taskMilestone" class="accent-amber-500" />
+          <span class="w-2.5 h-2.5 rotate-45 bg-amber-500 inline-block"></span> Meilenstein (wird am Enddatum als Raute angezeigt)
+        </label>
 
         <!-- Next Action -->
         <div>
@@ -1036,12 +1073,29 @@
     let sortAsc = true;
     let draggedTaskId = null;
     let draggedLeftTaskId = null;
-    let ganttZoom = 'week';
+    // Zoom = Pixel pro Tag (stufenlos). Klein = mehr Zeitraum sichtbar, groß = mehr Details.
+    const ZOOM_PRESETS = { day: 64, week: 42, month: 20, quarter: 9, year: 3 };
+    const ZOOM_MIN = 2;
+    const ZOOM_MAX = 140;
+    const ZOOM_KEY = `${STORAGE_KEY}_zoom`;
+    let ganttDayWidth = ZOOM_PRESETS.week;
+    let ganttMinDate = null;
 
     // Grouping State
     const NO_GROUP = 'Ohne Gruppe';
+    const NO_PHASE = 'Ohne Phase';
     const PHASE_ORDER = ['Konzept', 'Vorbereitung', 'Umsetzung', 'Schnittstellen', 'Inbetriebnahme', 'Doku'];
-    const STATUS_ORDER = ['Offen', 'In Arbeit', 'Blockiert', 'Erledigt'];
+    const STATUS_ORDER = ['Offen', 'In Arbeit', 'Im Testen', 'Blockiert', 'Erledigt', 'Abgebrochen'];
+    const STATUS_COLORS = { 'Offen': '#64748b', 'In Arbeit': '#3b82f6', 'Im Testen': '#8b5cf6', 'Blockiert': '#f43f5e', 'Erledigt': '#10b981', 'Abgebrochen': '#94a3b8' };
+
+    // Abgeschlossen = blockiert keine Nachfolger mehr
+    function isClosed(t) {
+      return t.status === 'Erledigt' || t.status === 'Abgebrochen';
+    }
+
+    function getStatusOptions(selected) {
+      return STATUS_ORDER.map(st => `<option value="${st}" ${st === selected ? 'selected' : ''}>${st}</option>`).join('');
+    }
     const GROUP_COLORS = ['#6366f1', '#f59e0b', '#06b6d4', '#d946ef', '#84cc16', '#f97316', '#0ea5e9', '#8b5cf6', '#14b8a6', '#ec4899'];
     const GROUPBY_KEY = `${STORAGE_KEY}_groupby`;
     const COLLAPSED_KEY = `${STORAGE_KEY}_collapsed`;
@@ -1125,6 +1179,7 @@
       document.getElementById('groupBySelect').value = groupBy;
 
       initGanttScrollSync();
+      initGanttZoom();
       switchView('gantt');
     }
 
@@ -1154,7 +1209,7 @@
     // GROUPING
     // -------------------------------------------------------------
     function getGroupKey(t, mode = groupBy) {
-      if (mode === 'phase') return t.phase || 'Konzept';
+      if (mode === 'phase') return t.phase || NO_PHASE;
       if (mode === 'status') return t.status || 'Offen';
       if (mode === 'group') return t.group || NO_GROUP;
       return null;
@@ -1185,7 +1240,7 @@
 
     function getGroupColor(key) {
       if (groupBy === 'status') {
-        return { 'Offen': '#64748b', 'In Arbeit': '#3b82f6', 'Blockiert': '#f43f5e', 'Erledigt': '#10b981' }[key] || '#64748b';
+        return STATUS_COLORS[key] || '#64748b';
       }
       if (!key || key === NO_GROUP) return '#94a3b8';
       let h = 0;
@@ -1242,7 +1297,7 @@
       if (e) e.stopPropagation();
       openTaskModal(false);
       if (groupBy === 'group') document.getElementById('taskGroup').value = key === NO_GROUP ? '' : key;
-      if (groupBy === 'phase') document.getElementById('taskPhase').value = key;
+      if (groupBy === 'phase') document.getElementById('taskPhase').value = key === NO_PHASE ? '' : key;
       if (groupBy === 'status') {
         document.getElementById('taskStatus').value = key;
         syncStatusProgress();
@@ -1252,7 +1307,7 @@
     // Setzt das Feld, nach dem gerade gruppiert wird (Gruppe / Phase / Status)
     function assignTaskToGroup(task, key) {
       if (groupBy === 'group') task.group = key === NO_GROUP ? '' : key;
-      else if (groupBy === 'phase') task.phase = key;
+      else if (groupBy === 'phase') task.phase = key === NO_PHASE ? '' : key;
       else if (groupBy === 'status') {
         task.status = key;
         if (key === 'Erledigt') task.progress = 100;
@@ -1264,6 +1319,8 @@
       const names = getAllGroupNames();
       const datalist = document.getElementById('groupOptions');
       datalist.innerHTML = names.map(n => `<option value="${escapeHTML(n)}"></option>`).join('');
+      const owners = [...new Set(tasks.map(t => t.owner).filter(Boolean))];
+      document.getElementById('ownerOptions').innerHTML = owners.map(n => `<option value="${escapeHTML(n)}"></option>`).join('');
 
       const filter = document.getElementById('filterGroup');
       const current = filter.value;
@@ -1271,6 +1328,21 @@
         names.map(n => `<option value="${escapeHTML(n)}">${escapeHTML(n)}</option>`).join('') +
         (tasks.some(t => !t.group) ? `<option value="${NO_GROUP}">${NO_GROUP}</option>` : '');
       filter.value = [...filter.options].some(o => o.value === current) ? current : 'ALL';
+
+      // Phasen aus importierten Daten (z. B. "Fertigstellen") in Filter und Formular ergänzen
+      const extraPhases = [...new Set(tasks.map(t => t.phase).filter(ph => ph && !PHASE_ORDER.includes(ph)))];
+      const phaseFilter = document.getElementById('filterPhase');
+      const phaseSelect = document.getElementById('taskPhase');
+      const currentPhase = phaseFilter.value;
+      phaseFilter.querySelectorAll('[data-dynamic]').forEach(o => o.remove());
+      phaseSelect.querySelectorAll('[data-dynamic]').forEach(o => o.remove());
+      [...extraPhases, ...(tasks.some(t => !t.phase) ? [NO_PHASE] : [])].forEach(ph => {
+        phaseFilter.insertAdjacentHTML('beforeend', `<option data-dynamic value="${escapeHTML(ph)}">${escapeHTML(ph)}</option>`);
+      });
+      extraPhases.forEach(ph => {
+        phaseSelect.insertAdjacentHTML('beforeend', `<option data-dynamic value="${escapeHTML(ph)}">${escapeHTML(ph)}</option>`);
+      });
+      phaseFilter.value = [...phaseFilter.options].some(o => o.value === currentPhase) ? currentPhase : 'ALL';
     }
 
     function saveTasks() {
@@ -1310,9 +1382,10 @@
         const matchesQuery = !query ||
           t.title.toLowerCase().includes(query) ||
           (t.group && t.group.toLowerCase().includes(query)) ||
+          (t.owner && t.owner.toLowerCase().includes(query)) ||
           (t.notes && t.notes.toLowerCase().includes(query)) ||
           (t.nextAction && t.nextAction.toLowerCase().includes(query));
-        const matchesPhase = phase === 'ALL' || t.phase === phase;
+        const matchesPhase = phase === 'ALL' || (t.phase || NO_PHASE) === phase;
         const matchesPriority = priority === 'ALL' || t.priority === priority;
         const matchesStatus = status === 'ALL' || t.status === status;
         const matchesGroup = group === 'ALL' || (t.group || NO_GROUP) === group;
@@ -1339,7 +1412,7 @@
       const inProgress = tasks.filter(t => t.status === 'In Arbeit').length;
       const blocked = tasks.filter(t => t.status === 'Blockiert').length;
       const done = tasks.filter(t => t.status === 'Erledigt').length;
-      const highOpen = tasks.filter(t => t.priority === 'Hoch' && t.status !== 'Erledigt').length;
+      const highOpen = tasks.filter(t => t.priority === 'Hoch' && !isClosed(t)).length;
 
       const avgProgress = total === 0 ? 0 : Math.round(tasks.reduce((acc, t) => acc + (t.progress || 0), 0) / total);
 
@@ -1387,6 +1460,7 @@
     }
 
     function getPhaseBadge(phase) {
+      if (!phase) return '';
       return `<span class="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80">${escapeHTML(phase || 'Konzept')}</span>`;
     }
 
@@ -1451,7 +1525,7 @@
     // 'conflict' = Nachfolger beginnt, bevor der Vorgänger endet
     // 'wait'     = Vorgänger läuft noch, Termine passen
     function getDependencyState(pred, succ) {
-      if (pred.status === 'Erledigt') return 'done';
+      if (isClosed(pred)) return 'done';
       if (new Date(succ.startDate) <= new Date(pred.endDate)) return 'conflict';
       return 'wait';
     }
@@ -1763,6 +1837,12 @@
 
     // 2D Gantt Rendering
     function getStatusBarColors(status, isDark) {
+      if (status === 'Im Testen') {
+        return [isDark ? 'bg-violet-600/90 border-violet-400 text-violet-100' : 'bg-violet-600 border-violet-700 text-white shadow-sm', isDark ? 'bg-violet-400/50' : 'bg-violet-800/50'];
+      }
+      if (status === 'Abgebrochen') {
+        return [isDark ? 'bg-slate-800/60 border-slate-600 border-dashed text-slate-400 line-through' : 'bg-slate-200 border-slate-400 border-dashed text-slate-500 line-through', isDark ? 'bg-slate-600/30' : 'bg-slate-300/60'];
+      }
       if (status === 'Erledigt') {
         return [isDark ? 'bg-emerald-600/90 border-emerald-400 text-emerald-100' : 'bg-emerald-600 border-emerald-700 text-white shadow-sm', isDark ? 'bg-emerald-400/50' : 'bg-emerald-700/60'];
       }
@@ -1862,16 +1942,29 @@
         }
       });
 
-      minDate.setDate(minDate.getDate() - (ganttZoom === 'day' ? 3 : 7));
-      maxDate.setDate(maxDate.getDate() + (ganttZoom === 'day' ? 7 : 14));
+      const dayWidth = ganttDayWidth;
+
+      // Heute immer im Zeitraum; Rand links/rechts wächst beim Rauszoomen mit
+      const todayStart = new Date();
+      if (todayStart < minDate) minDate = new Date(todayStart);
+      if (todayStart > maxDate) maxDate = new Date(todayStart);
+      // halbe Bildschirmbreite Puffer je Seite, damit Zoomen an der Mausposition immer möglich ist
+      const halfViewDays = Math.ceil(timelineWrapper.clientWidth / dayWidth / 2);
+      const padDays = Math.max(3, Math.round(140 / dayWidth), halfViewDays);
+      minDate.setDate(minDate.getDate() - padDays);
+      maxDate.setDate(maxDate.getDate() + padDays);
       minDate.setHours(0, 0, 0, 0);
       maxDate.setHours(0, 0, 0, 0);
 
-      const totalDays = Math.max(1, Math.round((maxDate - minDate) / (1000 * 60 * 60 * 24)));
+      // Beim Rauszoomen die sichtbare Breite mit Zeit füllen statt mit leerer Fläche
+      const minVisibleDays = Math.ceil(timelineWrapper.clientWidth / dayWidth) + 1;
+      if ((maxDate - minDate) / 86400000 < minVisibleDays) {
+        maxDate = new Date(minDate);
+        maxDate.setDate(maxDate.getDate() + minVisibleDays);
+      }
+      ganttMinDate = new Date(minDate);
 
-      let dayWidth = 42;
-      if (ganttZoom === 'day') dayWidth = 64;
-      if (ganttZoom === 'month') dayWidth = 20;
+      const totalDays = Math.max(1, Math.round((maxDate - minDate) / (1000 * 60 * 60 * 24)));
 
       const totalTimelineWidth = totalDays * dayWidth;
       document.getElementById('ganttInnerTimeline').style.width = `${totalTimelineWidth}px`;
@@ -1881,22 +1974,29 @@
 
       while (curr <= maxDate) {
         const cell = document.createElement('div');
-        cell.className = 'border-r border-slate-200 dark:border-slate-800/80 text-[10px] text-slate-500 dark:text-slate-400 flex flex-col justify-center items-center select-none flex-shrink-0';
+        const isMonday = curr.getDay() === 1;
+        const isMonthStart = curr.getDate() === 1;
+        // Trennlinien je nach Zoomstufe: Tage > Wochen > Monate
+        const showLine = dayWidth >= 12 || (dayWidth >= 5 ? isMonday || isMonthStart : isMonthStart);
+        cell.className = `${showLine ? 'border-l' : ''} ${isMonthStart && dayWidth < 28 ? 'border-slate-400 dark:border-slate-600' : 'border-slate-200 dark:border-slate-800/80'} text-[10px] text-slate-500 dark:text-slate-400 flex flex-col justify-center select-none flex-shrink-0 relative overflow-visible whitespace-nowrap ${dayWidth >= 28 ? 'items-center' : 'items-start pl-1'}`;
         cell.style.width = `${dayWidth}px`;
 
         const isWeekend = curr.getDay() === 0 || curr.getDay() === 6;
-        if (isWeekend) cell.classList.add('bg-slate-200/40', 'dark:bg-slate-900/40');
+        if (isWeekend && dayWidth >= 5) cell.classList.add('bg-slate-200/40', 'dark:bg-slate-900/40');
 
         const isTodayCell = curr.toDateString() === new Date().toDateString();
         if (isTodayCell) cell.classList.add('text-emerald-600', 'dark:text-emerald-400', 'font-bold', 'bg-emerald-500/10');
 
-        if (ganttZoom === 'day') {
+        const monthLabel = curr.toLocaleDateString('de-DE', { month: dayWidth < 5 ? 'short' : 'long', year: curr.getMonth() === 0 || dayIndex === 0 ? 'numeric' : undefined });
+        if (dayWidth >= 56) {
+          // Tage: Wochentag + Datum
           cell.innerHTML = `
-            <span class="text-[9px] uppercase text-slate-400 dark:text-slate-500">${curr.toLocaleDateString('de-DE', { weekday: 'short' })}</span>
-            <span class="${isTodayCell ? 'text-emerald-600 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-300'}">${curr.getDate()}</span>
+            <span class="text-[9px] uppercase text-slate-400 dark:text-slate-500">${curr.toLocaleDateString('de-DE', { weekday: 'short' })}${isMonday ? ` · KW ${getWeekNumber(curr)}` : ''}</span>
+            <span class="${isTodayCell ? 'text-emerald-600 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-300'}">${curr.getDate()}.${curr.getMonth() + 1}.</span>
           `;
-        } else if (ganttZoom === 'week') {
-          if (dayIndex % 7 === 0 || curr.getDate() === 1) {
+        } else if (dayWidth >= 28) {
+          // Wochen: jeden Tag die Zahl, montags Datum + KW
+          if (isMonday || isMonthStart || dayIndex === 0) {
             cell.innerHTML = `
               <span class="text-[9px] text-slate-700 dark:text-slate-400 font-semibold">${curr.getDate()}.${curr.getMonth() + 1}.</span>
               <span class="text-[8px] text-slate-400 dark:text-slate-500">KW ${getWeekNumber(curr)}</span>
@@ -1904,10 +2004,15 @@
           } else {
             cell.innerHTML = `<span class="text-[9px] text-slate-400 dark:text-slate-500">${curr.getDate()}</span>`;
           }
-        } else {
-          if (curr.getDate() === 1 || dayIndex === 0) {
-            cell.innerHTML = `<span class="text-[9px] font-semibold text-slate-700 dark:text-slate-300">${curr.toLocaleDateString('de-DE', { month: 'short' })}</span>`;
-          }
+        } else if (dayWidth >= 8) {
+          // Monate: oben Monat, unten Kalenderwochen
+          cell.innerHTML = `
+            <span class="text-[9px] font-semibold text-slate-700 dark:text-slate-300 h-3.5">${isMonthStart || dayIndex === 0 ? monthLabel : ''}</span>
+            <span class="text-[8px] text-slate-400 dark:text-slate-500 h-3">${isMonday && dayWidth * 7 >= 30 ? `KW ${getWeekNumber(curr)}` : ''}</span>
+          `;
+        } else if (isMonthStart || dayIndex === 0) {
+          // Quartal / Jahr: nur Monate
+          cell.innerHTML = `<span class="text-[9px] font-semibold text-slate-700 dark:text-slate-300">${monthLabel}</span>`;
         }
 
         headerRow.appendChild(cell);
@@ -2027,7 +2132,7 @@
         const preds = getPredecessors(task);
         const succs = getSuccessors(task.id);
         const conflictPreds = preds.filter(p => getDependencyState(p, task) === 'conflict');
-        const openPreds = preds.filter(p => p.status !== 'Erledigt');
+        const openPreds = preds.filter(p => !isClosed(p));
 
         let depInfo = '';
         if (conflictPreds.length) {
@@ -2069,12 +2174,13 @@
             <div class="truncate min-w-0">
               <div class="font-medium text-slate-900 dark:text-slate-200 truncate" title="${escapeHTML(task.title)}">${escapeHTML(task.title)}</div>
               <div class="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5 min-w-0">
-                <span class="truncate">${escapeHTML(groupBy === 'phase' ? (task.group || task.phase) : task.phase)}</span>
-                <span>•</span>
-                <span class="flex-shrink-0 ${task.status === 'Blockiert' ? 'text-rose-600 dark:text-rose-400 font-semibold' : ''}">${escapeHTML(task.status)}</span>
-                ${depInfo || succInfo ? '<span>•</span>' : ''}
-                ${depInfo}
-                ${succInfo}
+                ${[
+                  task.owner ? `<span class="flex-shrink-0 font-semibold text-slate-600 dark:text-slate-300" title="Verantwortlich"><i class="fa-solid fa-user text-[8px] mr-0.5"></i>${escapeHTML(task.owner)}</span>` : '',
+                  `<span class="flex-shrink-0 ${task.status === 'Blockiert' ? 'text-rose-600 dark:text-rose-400 font-semibold' : ''}" ${task.blockReason || task.waitingFor ? `title="${escapeHTML([task.blockReason, task.waitingFor ? 'Wartet auf: ' + task.waitingFor : ''].filter(Boolean).join(' – '))}"` : ''}>${escapeHTML(task.status)}${task.status === 'Blockiert' && (task.blockReason || task.waitingFor) ? ' <i class="fa-solid fa-circle-info text-[8px]"></i>' : ''}</span>`,
+                  (groupBy === 'phase' ? '' : task.phase) ? `<span class="truncate">${escapeHTML(task.phase)}</span>` : '',
+                  depInfo,
+                  succInfo
+                ].filter(Boolean).join('<span class="flex-shrink-0">•</span>')}
               </div>
             </div>
           </div>
@@ -2092,7 +2198,12 @@
         row.onmouseenter = () => highlightDependencyChain(task.id);
         row.onmouseleave = clearDependencyHighlight;
 
-        const span = spanPx(task.startDate, task.endDate);
+        let span = spanPx(task.startDate, task.endDate);
+        if (task.milestone) {
+          // Raute in der Mitte des Endtages
+          const end = spanPx(task.endDate, task.endDate);
+          span = { left: end.left + dayWidth / 2 - 11, width: 22, durationDays: 1 };
+        }
         cachedBarPositions[task.id] = {
           id: task.id,
           startX: span.left,
@@ -2112,26 +2223,52 @@
         barWrapper.className = 'gantt-bar-wrapper';
         barWrapper.style.left = `${span.left}px`;
 
+        const barTooltip = `${escapeHTML(task.title)} (${task.status})\n${formatDate(task.startDate)} bis ${formatDate(task.endDate)} - ${task.progress || 0}%${task.owner ? `\nVerantwortlich: ${escapeHTML(task.owner)}` : ''}${task.blockReason ? `\nBlockiert: ${escapeHTML(task.blockReason)}` : ''}${preds.length ? `\nNach: ${escapeHTML(preds.map(p => p.title).join(', '))}` : ''}`;
+        const isShort = span.width < 110;
+        const outsideLabel = isShort
+          ? `<span class="ml-1.5 text-[11px] font-medium whitespace-nowrap text-slate-700 dark:text-slate-300 pointer-events-none ${task.status === 'Abgebrochen' ? 'line-through opacity-60' : ''}">${escapeHTML(task.title)}${task.milestone ? ` · ${formatDate(task.endDate)}` : ''}</span>`
+          : '';
+
+        const connectBtn = `
+          <!-- THE HOVER PLUS (+) CONNECTOR HANDLE -->
+          <button type="button" 
+                  onclick="startDependencyLinking('${task.id}', event)" 
+                  class="dep-connect-btn ml-1.5 w-6 h-6 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center text-xs font-bold shadow-lg shadow-rose-500/40 hover:scale-110 active:scale-95 transition-all cursor-pointer border border-white/40 flex-shrink-0"
+                  title="Abhängigkeit erstellen: Klicke hier und danach auf den Nachfolger-Task!">
+            <i class="fa-solid fa-plus text-[11px] pointer-events-none"></i>
+          </button>`;
+
+        if (task.milestone) {
+          const milestoneColor = isClosed(task) ? '#10b981' : '#f59e0b';
+          barWrapper.innerHTML = `
+            <div class="gantt-bar w-[22px] h-[22px] flex items-center justify-center ${isSelf ? 'animate-pulse' : ''}" onclick="handleTaskClickInGantt('${task.id}', event)" title="Meilenstein: ${barTooltip}">
+              <div class="w-4 h-4 rotate-45 rounded-[3px] border-2 shadow" style="background:${milestoneColor}; border-color:${isDark ? '#fde68a' : '#92400e'};"></div>
+            </div>
+            ${connectBtn}
+            ${outsideLabel}
+          `;
+          row.appendChild(barWrapper);
+          bodyRows.appendChild(row);
+          y += ROW_H;
+          return;
+        }
+
         barWrapper.innerHTML = `
           <!-- The Main Time Bar -->
           <div class="gantt-bar h-8 rounded-lg border flex items-center px-2.5 overflow-hidden text-xs select-none relative ${barColor}"
                style="width: ${span.width}px;${color ? ` box-shadow: inset 3px 0 0 ${color};` : ''}"
                onclick="handleTaskClickInGantt('${task.id}', event)"
-               title="${escapeHTML(task.title)} (${task.status})\n${formatDate(task.startDate)} bis ${formatDate(task.endDate)} - ${task.progress || 0}%${preds.length ? `\nNach: ${escapeHTML(preds.map(p => p.title).join(', '))}` : ''}">
+               title="${barTooltip}">
             <div class="absolute left-0 top-0 bottom-0 ${progressFillColor} pointer-events-none transition-all" style="width: ${task.progress || 0}%;"></div>
-            <div class="relative z-10 truncate flex items-center justify-between w-full font-medium">
+            ${isShort
+              ? (span.width >= 44 ? `<div class="relative z-10 w-full text-center text-[10px] font-mono font-medium">${task.progress || 0}%</div>` : '')
+              : `<div class="relative z-10 truncate flex items-center justify-between w-full font-medium">
               <span class="truncate drop-shadow-xs">${escapeHTML(task.title)}</span>
               <span class="ml-1.5 text-[10px] font-mono opacity-95">${task.progress || 0}%</span>
-            </div>
+            </div>`}
           </div>
-
-          <!-- THE HOVER PLUS (+) CONNECTOR HANDLE -->
-          <button type="button" 
-                  onclick="startDependencyLinking('${task.id}', event)" 
-                  class="dep-connect-btn ml-1.5 w-6 h-6 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center text-xs font-bold shadow-lg shadow-rose-500/40 hover:scale-110 active:scale-95 transition-all cursor-pointer border border-white/40"
-                  title="Abhängigkeit erstellen: Klicke hier und danach auf den Nachfolger-Task!">
-            <i class="fa-solid fa-plus text-[11px] pointer-events-none"></i>
-          </button>
+          ${connectBtn}
+          ${outsideLabel}
         `;
 
         row.appendChild(barWrapper);
@@ -2255,21 +2392,62 @@
       return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
     }
 
-    function setGanttZoom(zoom) {
-      ganttZoom = zoom;
-      const dayBtn = document.getElementById('ganttZoomDay');
-      const weekBtn = document.getElementById('ganttZoomWeek');
-      const monthBtn = document.getElementById('ganttZoomMonth');
+    function setGanttZoom(preset) {
+      applyGanttZoom(ZOOM_PRESETS[preset]);
+    }
 
-      [dayBtn, weekBtn, monthBtn].forEach(b => {
-        b.className = 'px-2.5 py-1 rounded text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:white transition';
-      });
+    // factor > 1 = reinzoomen (weniger Zeitraum), < 1 = rauszoomen (mehr Zeitraum)
+    function zoomGantt(factor, anchorClientX) {
+      applyGanttZoom(ganttDayWidth * factor, anchorClientX);
+    }
 
-      if (zoom === 'day') dayBtn.className = 'px-2.5 py-1 rounded bg-emerald-600 text-white font-medium shadow transition';
-      if (zoom === 'week') weekBtn.className = 'px-2.5 py-1 rounded bg-emerald-600 text-white font-medium shadow transition';
-      if (zoom === 'month') monthBtn.className = 'px-2.5 py-1 rounded bg-emerald-600 text-white font-medium shadow transition';
+    // Setzt den Zoom und hält das Datum unter dem Anker (Maus bzw. Mitte) an derselben Stelle
+    function applyGanttZoom(newDayWidth, anchorClientX) {
+      const wrapper = document.getElementById('ganttTimelineWrapper');
+      const rect = wrapper.getBoundingClientRect();
+      const anchorX = anchorClientX !== undefined ? anchorClientX - rect.left : wrapper.clientWidth / 2;
+      const anchorDay = ganttMinDate ? (wrapper.scrollLeft + anchorX) / ganttDayWidth : null;
+      const anchorDate = anchorDay !== null ? ganttMinDate.getTime() + anchorDay * 86400000 : null;
 
+      ganttDayWidth = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, newDayWidth));
+      try { localStorage.setItem(ZOOM_KEY, String(ganttDayWidth)); } catch (e) {}
+      updateZoomControls();
       renderGantt(getFilteredTasks());
+
+      if (anchorDate !== null && ganttMinDate) {
+        const newDay = (anchorDate - ganttMinDate.getTime()) / 86400000;
+        wrapper.scrollLeft = Math.max(0, newDay * ganttDayWidth - anchorX);
+      }
+    }
+
+    function updateZoomControls() {
+      const active = Object.entries(ZOOM_PRESETS).find(([, w]) => Math.abs(w - ganttDayWidth) < 0.5);
+      document.querySelectorAll('[data-zoom-preset]').forEach(btn => {
+        const isActive = active && btn.id === `ganttZoom${active[0].charAt(0).toUpperCase()}${active[0].slice(1)}`;
+        btn.className = isActive
+          ? 'px-2 py-1 rounded bg-emerald-600 text-white font-medium shadow transition'
+          : 'px-2 py-1 rounded text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition';
+      });
+      const wrapper = document.getElementById('ganttTimelineWrapper');
+      const days = Math.round((wrapper.clientWidth || 900) / ganttDayWidth);
+      const info = days >= 120 ? `≈ ${Math.round(days / 30.4)} Monate sichtbar` : days >= 21 ? `≈ ${Math.round(days / 7)} Wochen sichtbar` : `≈ ${days} Tage sichtbar`;
+      document.getElementById('ganttZoomInfo').innerText = info;
+    }
+
+    function initGanttZoom() {
+      try {
+        const stored = parseFloat(localStorage.getItem(ZOOM_KEY));
+        if (stored >= ZOOM_MIN && stored <= ZOOM_MAX) ganttDayWidth = stored;
+      } catch (e) {}
+      updateZoomControls();
+
+      // Strg/⌘ + Mausrad (bzw. Pinch auf dem Trackpad) zoomt an der Mausposition
+      document.getElementById('ganttTimelineWrapper').addEventListener('wheel', (e) => {
+        if (!e.ctrlKey && !e.metaKey) return;
+        e.preventDefault();
+        zoomGantt(Math.exp(-e.deltaY * 0.0025), e.clientX);
+      }, { passive: false });
+      window.addEventListener('resize', updateZoomControls);
     }
 
     // View Switching (Gantt 2D, Kanban, Table)
@@ -2311,6 +2489,7 @@
       const colMap = {
         'Offen': { el: document.getElementById('colOffen'), badge: document.getElementById('badgeCountOffen'), list: [] },
         'In Arbeit': { el: document.getElementById('colInArbeit'), badge: document.getElementById('badgeCountInArbeit'), list: [] },
+        'Im Testen': { el: document.getElementById('colImTesten'), badge: document.getElementById('badgeCountImTesten'), list: [] },
         'Blockiert': { el: document.getElementById('colBlockiert'), badge: document.getElementById('badgeCountBlockiert'), list: [] },
         'Erledigt': { el: document.getElementById('colErledigt'), badge: document.getElementById('badgeCountErledigt'), list: [] }
       };
@@ -2320,7 +2499,9 @@
       // innerhalb der Spalten nach Gruppe sortiert
       const ordered = buildGroups(filteredTasks, groupBy === 'status' ? 'none' : groupBy).flatMap(g => g.tasks);
       ordered.forEach(task => {
-        if (colMap[task.status]) {
+        if (task.status === 'Abgebrochen') {
+          colMap['Erledigt'].list.push(task);
+        } else if (colMap[task.status]) {
           colMap[task.status].list.push(task);
         } else {
           colMap['Offen'].list.push(task);
@@ -2349,14 +2530,14 @@
           card.ondragstart = (e) => handleDragStart(e, t.id);
           card.ondragend = (e) => handleDragEnd(e);
 
-          const isOverdue = t.endDate && new Date(t.endDate) < new Date().setHours(0,0,0,0) && t.status !== 'Erledigt';
+          const isOverdue = t.endDate && new Date(t.endDate) < new Date().setHours(0,0,0,0) && !isClosed(t);
           const preds = getPredecessors(t);
           const groupColor = getGroupColor(t.group || NO_GROUP);
           card.style.borderLeft = `4px solid ${t.group ? groupColor : 'transparent'}`;
 
           card.innerHTML = `
             <div class="flex items-start justify-between gap-2">
-              <span class="text-xs font-semibold text-slate-900 dark:text-slate-100 leading-snug break-words flex-1">${escapeHTML(t.title)}</span>
+              <span class="text-xs font-semibold text-slate-900 dark:text-slate-100 leading-snug break-words flex-1 ${t.status === 'Abgebrochen' ? 'line-through opacity-60' : ''}">${t.milestone ? '<span class="inline-block w-2 h-2 rotate-45 bg-amber-500 mr-1.5 align-middle" title="Meilenstein"></span>' : ''}${escapeHTML(t.title)}</span>
               <div class="flex items-center gap-1 opacity-70 hover:opacity-100 transition">
                 <button onclick="editTask('${t.id}')" title="Bearbeiten" class="p-1 hover:text-emerald-500 text-slate-400 dark:text-slate-400">
                   <i class="fa-solid fa-pen text-xs"></i>
@@ -2371,9 +2552,16 @@
               ${t.group ? getGroupBadge(t.group) : ''}
               ${getPhaseBadge(t.phase)}
               ${getPriorityBadge(t.priority)}
+              ${t.owner ? `<span class="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center gap-1"><i class="fa-solid fa-user text-[8px]"></i>${escapeHTML(t.owner)}</span>` : ''}
             </div>
 
             ${preds.length ? `<div class="space-y-1">${preds.map(p => getDependencyChip(p, t)).join('')}</div>` : ''}
+
+            ${t.status === 'Blockiert' && (t.blockReason || t.waitingFor) ? `
+              <div class="text-[10px] text-rose-700 dark:text-rose-300 bg-rose-500/10 border border-rose-500/25 px-2 py-1 rounded-md space-y-0.5">
+                ${t.blockReason ? `<div class="flex gap-1.5"><i class="fa-solid fa-ban text-[9px] mt-0.5"></i><span>${escapeHTML(t.blockReason)}</span></div>` : ''}
+                ${t.waitingFor ? `<div class="flex gap-1.5"><i class="fa-solid fa-user-clock text-[9px] mt-0.5"></i><span>Wartet auf: ${escapeHTML(t.waitingFor)}</span></div>` : ''}
+              </div>` : ''}
 
             <!-- Progress bar -->
             <div class="space-y-1">
@@ -2404,10 +2592,7 @@
               </div>
               <div>
                 <select onchange="updateTaskStatusDirectly('${t.id}', this.value)" class="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[10px] text-slate-700 dark:text-slate-300 rounded px-1.5 py-0.5 outline-none">
-                  <option value="Offen" ${t.status === 'Offen' ? 'selected' : ''}>Offen</option>
-                  <option value="In Arbeit" ${t.status === 'In Arbeit' ? 'selected' : ''}>In Arbeit</option>
-                  <option value="Blockiert" ${t.status === 'Blockiert' ? 'selected' : ''}>Blockiert</option>
-                  <option value="Erledigt" ${t.status === 'Erledigt' ? 'selected' : ''}>Erledigt</option>
+                  ${getStatusOptions(t.status)}
                 </select>
               </div>
             </div>
@@ -2473,12 +2658,12 @@
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 transition border-b border-slate-100 dark:border-slate-800/60';
 
-        const isOverdue = t.endDate && new Date(t.endDate) < new Date().setHours(0,0,0,0) && t.status !== 'Erledigt';
+        const isOverdue = t.endDate && new Date(t.endDate) < new Date().setHours(0,0,0,0) && !isClosed(t);
         const preds = getPredecessors(t);
 
         tr.innerHTML = `
           <td class="py-3.5 px-4" ${groupKey !== null ? `style="box-shadow: inset 4px 0 0 ${getGroupColor(groupKey)}55;"` : ''}>
-            <div class="font-medium text-slate-900 dark:text-slate-100">${escapeHTML(t.title)}</div>
+            <div class="font-medium text-slate-900 dark:text-slate-100 ${t.status === 'Abgebrochen' ? 'line-through opacity-60' : ''}">${t.milestone ? '<span class="inline-block w-2 h-2 rotate-45 bg-amber-500 mr-1.5 align-middle" title="Meilenstein"></span>' : ''}${escapeHTML(t.title)}${t.owner ? ` <span class="ml-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400"><i class="fa-solid fa-user text-[8px]"></i> ${escapeHTML(t.owner)}</span>` : ''}</div>
             ${t.group && groupBy !== 'group' ? `<div class="mt-1">${getGroupBadge(t.group)}</div>` : ''}
             ${t.notes ? `<div class="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-xs mt-0.5">${escapeHTML(t.notes)}</div>` : ''}
           </td>
@@ -2486,10 +2671,7 @@
           <td class="py-3.5 px-4">${getPriorityBadge(t.priority)}</td>
           <td class="py-3.5 px-4">
             <select onchange="updateTaskStatusDirectly('${t.id}', this.value)" class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 rounded-lg px-2.5 py-1 outline-none">
-              <option value="Offen" ${t.status === 'Offen' ? 'selected' : ''}>Offen</option>
-              <option value="In Arbeit" ${t.status === 'In Arbeit' ? 'selected' : ''}>In Arbeit</option>
-              <option value="Blockiert" ${t.status === 'Blockiert' ? 'selected' : ''}>Blockiert</option>
-              <option value="Erledigt" ${t.status === 'Erledigt' ? 'selected' : ''}>Erledigt</option>
+              ${getStatusOptions(t.status)}
             </select>
           </td>
           <td class="py-3.5 px-4">
@@ -2711,6 +2893,8 @@
         document.getElementById('taskProgress').value = 0;
         updateProgressDisplay(0);
         document.getElementById('taskGroup').value = '';
+        document.getElementById('taskOwner').value = '';
+        document.getElementById('taskMilestone').checked = false;
         populatePredecessorList('');
         title.innerHTML = '<i class="fa-solid fa-plus text-emerald-500"></i> Neue Aufgabe erstellen';
       }
@@ -2730,7 +2914,9 @@
       document.getElementById('taskId').value = task.id;
       document.getElementById('taskTitle').value = task.title || '';
       document.getElementById('taskGroup').value = task.group || '';
-      document.getElementById('taskPhase').value = task.phase || 'Konzept';
+      document.getElementById('taskOwner').value = task.owner || '';
+      document.getElementById('taskMilestone').checked = !!task.milestone;
+      document.getElementById('taskPhase').value = task.phase || '';
       document.getElementById('taskPriority').value = task.priority || 'Mittel';
       document.getElementById('taskStatus').value = task.status || 'Offen';
       document.getElementById('taskProgress').value = task.progress || 0;
@@ -2765,6 +2951,8 @@
       const id = document.getElementById('taskId').value;
       const title = document.getElementById('taskTitle').value.trim();
       const group = document.getElementById('taskGroup').value.trim();
+      const owner = document.getElementById('taskOwner').value.trim();
+      const milestone = document.getElementById('taskMilestone').checked;
       const dependsOn = getSelectedPredecessors();
       const phase = document.getElementById('taskPhase').value;
       const priority = document.getElementById('taskPriority').value;
@@ -2781,14 +2969,14 @@
         if (index !== -1) {
           tasks[index] = { 
             ...tasks[index], 
-            title, group, dependsOn, phase, priority, status, progress, startDate, endDate, nextAction, notes 
+            title, group, owner, milestone, dependsOn, phase, priority, status, progress, startDate, endDate, nextAction, notes 
           };
           saved = tasks[index];
         }
       } else {
         saved = {
           id: 't-' + Date.now(),
-          title, group, dependsOn, phase, priority, status, progress, startDate, endDate, nextAction, notes
+          title, group, owner, milestone, dependsOn, phase, priority, status, progress, startDate, endDate, nextAction, notes
         };
         tasks.push(saved);
       }
@@ -2980,6 +3168,8 @@ Erzeuge dafür nun das passende JSON-Objekt im definierten Format.`;
       const s = String(val).toLowerCase().trim();
       if (s === 'in_progress' || s === 'in progress' || s === 'in arbeit' || s === 'progress') return 'In Arbeit';
       if (s === 'blocked' || s === 'blockiert' || s === 'block') return 'Blockiert';
+      if (s === 'testing' || s === 'in_test' || s === 'im testen' || s === 'test') return 'Im Testen';
+      if (s === 'cancelled' || s === 'canceled' || s === 'abgebrochen') return 'Abgebrochen';
       if (s === 'done' || s === 'erledigt' || s === 'completed' || s === 'finished') return 'Erledigt';
       return 'Offen';
     }
@@ -3087,6 +3277,7 @@ Erzeuge dafür nun das passende JSON-Objekt im definierten Format.`;
             saveTasks();
             render();
             showToast(`${imported.length} Aufgaben erfolgreich importiert`);
+            if (currentView === 'gantt') setTimeout(scrollGanttToToday, 60);
           } else {
             showToast('Ungültiges Dateiformat', 'error');
           }
