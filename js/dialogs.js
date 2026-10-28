@@ -66,6 +66,7 @@ function openTaskModal(isEdit = false) {
     populatePredecessorList('');
     title.innerHTML = '<svg class="icon text-emerald-500" aria-hidden="true"><use href="#i-plus"></use></svg> Neue Aufgabe erstellen';
   }
+  document.getElementById('aiAutoCopy').checked = isAiAutoCopy();
   modal.classList.remove('hidden');
 }
 
@@ -97,6 +98,7 @@ function editTask(id) {
   document.getElementById('taskNotes').value = task.notes || '';
 
   document.getElementById('modalTitle').innerHTML = '<svg class="icon text-emerald-500" aria-hidden="true"><use href="#i-square-pen"></use></svg> Aufgabe bearbeiten';
+  document.getElementById('aiAutoCopy').checked = isAiAutoCopy();
   document.getElementById('taskModal').classList.remove('hidden');
 }
 
@@ -135,16 +137,28 @@ function handleTaskSubmit(e) {
   if (id) {
     const index = tasks.findIndex(t => t.id === id);
     if (index !== -1) {
+      const oldStatus = tasks[index].status;
       tasks[index] = { 
         ...tasks[index], 
-        title, group, owner, milestone, dependsOn, phase, priority, status, progress, startDate, endDate, nextAction, notes 
+        title, group, owner, milestone, dependsOn, phase, priority, progress, startDate, endDate, nextAction, notes,
+        status: oldStatus,
+        quick: false,
+        updatedAt: new Date().toISOString()
       };
       saved = tasks[index];
+      setTaskStatus(saved, status);
+      saved.progress = progress;
     }
   } else {
+    const now = new Date().toISOString();
     saved = {
       id: 't-' + Date.now(),
-      title, group, owner, milestone, dependsOn, phase, priority, status, progress, startDate, endDate, nextAction, notes
+      title, group, owner, milestone, dependsOn, phase, priority, status, progress, startDate, endDate, nextAction, notes,
+      createdAt: now,
+      updatedAt: now,
+      statusChangedAt: now,
+      doneAt: status === 'Erledigt' ? now : '',
+      blockedSince: status === 'Blockiert' ? now : ''
     };
     tasks.push(saved);
   }
@@ -160,6 +174,9 @@ function handleTaskSubmit(e) {
   saveTasks();
   closeTaskModal();
   render();
+
+  // KI-Rechtschreibprüfung: Prompt + JSON der gespeicherten Aufgabe gleich in die Zwischenablage
+  if (saved && document.getElementById('aiAutoCopy').checked) copyProofreadForTask(saved);
 }
 
 function toggleMenu() {
@@ -220,7 +237,9 @@ function exportCSV() {
 
 function buildBaseSystemPrompt(customCommand = '') {
   const todayISO = toISO(new Date());
-  const baseInstructions = `Du bist ein spezialisierter Assistent für Projektmanagement, Kanban und 2D/3D Gantt-Charts.
+  const baseInstructions = `Du bist ein spezialisierter Assistent für Projektmanagement, Kanban und 2D/3D Gantt-Charts
+in der industriellen Automatisierungstechnik (Sondermaschinenbau, SPS-Programmierung z. B. Siemens TIA Portal,
+HMI / WinCC Unified, Robotik, Inbetriebnahme). Verwende die dort übliche Fachsprache und korrekte deutsche Rechtschreibung.
 Erstelle für jede Aufgabe ausschließlich ein valides JSON-Array ohne umschließenden Markdown-Text oder Begrüßung.
 
 FORMAT-VORGABEN:
@@ -398,6 +417,7 @@ function processAiJsonImport() {
         startDate: item.startDate || item.start || toISO(new Date()),
         endDate: item.endDate || item.deadline || item.ende || addDays(7),
         nextAction: item.next_step || item.nextAction || item.naechsterSchritt || item.action || '',
+        createdAt: new Date().toISOString(),
         notes: item.notes || item.notizen || item.details || ''
       };
 

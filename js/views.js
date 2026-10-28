@@ -100,6 +100,7 @@ function renderKanban(filteredTasks) {
         </div>
 
         <div class="flex items-center flex-wrap gap-1.5">
+          ${isInboxTask(t) ? getInboxBadge() : ''}
           ${t.group ? getGroupBadge(t.group) : ''}
           ${getPhaseBadge(t.phase)}
           ${getPriorityBadge(t.priority)}
@@ -214,7 +215,7 @@ function renderTable(filteredTasks) {
 
     tr.innerHTML = `
       <td class="py-3.5 px-4" ${groupKey !== null ? `style="box-shadow: inset 4px 0 0 ${getGroupColor(groupKey)}55;"` : ''}>
-        <div class="font-medium text-slate-900 dark:text-slate-100 ${t.status === 'Abgebrochen' ? 'line-through opacity-60' : ''}">${t.milestone ? '<span class="inline-block w-2 h-2 rotate-45 bg-amber-500 mr-1.5 align-middle" title="Meilenstein"></span>' : ''}${escapeHTML(t.title)}${t.owner ? ` <span class="ml-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap"><svg class="icon text-[8px]" aria-hidden="true"><use href="#i-user"></use></svg> ${escapeHTML(t.owner)}</span>` : ''}</div>
+        <div class="font-medium text-slate-900 dark:text-slate-100 ${t.status === 'Abgebrochen' ? 'line-through opacity-60' : ''}">${t.milestone ? '<span class="inline-block w-2 h-2 rotate-45 bg-amber-500 mr-1.5 align-middle" title="Meilenstein"></span>' : ''}${escapeHTML(t.title)}${isInboxTask(t) ? ` ${getInboxBadge()}` : ''}${t.owner ? ` <span class="ml-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap"><svg class="icon text-[8px]" aria-hidden="true"><use href="#i-user"></use></svg> ${escapeHTML(t.owner)}</span>` : ''}</div>
         ${t.group && groupBy !== 'group' ? `<div class="mt-1">${getGroupBadge(t.group)}</div>` : ''}
         ${t.notes ? `<div class="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-xs mt-0.5">${escapeHTML(t.notes)}</div>` : ''}
       </td>
@@ -277,6 +278,7 @@ function updateGanttToolbar(filtered) {
 
 function render() {
   populateGroupControls();
+  updateInboxButton();
   const filtered = getFilteredTasks();
   updateMetrics();
   updateGanttToolbar(filtered);
@@ -348,9 +350,7 @@ function handleDrop(e, newStatus) {
 
   const taskIndex = tasks.findIndex(t => t.id === draggedTaskId);
   if (taskIndex !== -1 && tasks[taskIndex].status !== newStatus) {
-    tasks[taskIndex].status = newStatus;
-    if (newStatus === 'Erledigt') tasks[taskIndex].progress = 100;
-    if (newStatus === 'Offen' && tasks[taskIndex].progress === 100) tasks[taskIndex].progress = 0;
+    setTaskStatus(tasks[taskIndex], newStatus);
     saveTasks();
     render();
     showToast(`Status auf "${newStatus}" gesetzt`);
@@ -360,9 +360,7 @@ function handleDrop(e, newStatus) {
 function updateTaskStatusDirectly(id, newStatus) {
   const task = tasks.find(t => t.id === id);
   if (task) {
-    task.status = newStatus;
-    if (newStatus === 'Erledigt') task.progress = 100;
-    if (newStatus === 'Offen' && task.progress === 100) task.progress = 0;
+    setTaskStatus(task, newStatus);
     saveTasks();
     render();
     showToast(`Status aktualisiert: ${newStatus}`);

@@ -341,6 +341,7 @@ function renderGantt(filteredTasks) {
           <div class="font-medium text-slate-900 dark:text-slate-200 truncate" title="${escapeHTML(task.title)}">${escapeHTML(task.title)}</div>
           <div class="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5 min-w-0">
             ${[
+              isInboxTask(task) ? getInboxBadge() : '',
               task.owner ? `<span class="flex-shrink-0 font-semibold text-slate-600 dark:text-slate-300" title="Verantwortlich"><svg class="icon text-[8px] mr-0.5" aria-hidden="true"><use href="#i-user"></use></svg>${escapeHTML(task.owner)}</span>` : '',
               `<span class="flex-shrink-0 ${task.status === 'Blockiert' ? 'text-rose-600 dark:text-rose-400 font-semibold' : ''}" ${task.blockReason || task.waitingFor ? `title="${escapeHTML([task.blockReason, task.waitingFor ? 'Wartet auf: ' + task.waitingFor : ''].filter(Boolean).join(' – '))}"` : ''}>${escapeHTML(task.status)}${task.status === 'Blockiert' && (task.blockReason || task.waitingFor) ? ' <svg class="icon text-[8px]" aria-hidden="true"><use href="#i-info"></use></svg>' : ''}</span>`,
               (groupBy === 'phase' ? '' : task.phase) ? `<span class="truncate">${escapeHTML(task.phase)}</span>` : '',

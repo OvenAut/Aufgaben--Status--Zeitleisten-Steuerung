@@ -217,6 +217,20 @@ function isClosed(t) {
   return t.status === 'Erledigt' || t.status === 'Abgebrochen';
 }
 
+// Status setzen und Verlauf mitschreiben (Grundlage für Tages- und Wochenbericht)
+function setTaskStatus(task, newStatus) {
+  if (!task || task.status === newStatus) return;
+  const now = new Date().toISOString();
+  task.prevStatus = task.status || '';
+  task.status = newStatus;
+  task.statusChangedAt = now;
+  task.updatedAt = now;
+  task.doneAt = newStatus === 'Erledigt' ? now : '';
+  task.blockedSince = newStatus === 'Blockiert' ? now : '';
+  if (newStatus === 'Erledigt') task.progress = 100;
+  if (newStatus === 'Offen' && task.progress === 100) task.progress = 0;
+}
+
 function getStatusOptions(selected) {
   return STATUS_ORDER.map(st => `<option value="${st}" ${st === selected ? 'selected' : ''}>${st}</option>`).join('');
 }
@@ -430,13 +444,10 @@ function addTaskToGroup(key, e) {
 
 // Setzt das Feld, nach dem gerade gruppiert wird (Gruppe / Phase / Status)
 function assignTaskToGroup(task, key) {
+  if (groupBy === 'group' || groupBy === 'phase') task.quick = false;
   if (groupBy === 'group') task.group = key === NO_GROUP ? '' : key;
   else if (groupBy === 'phase') task.phase = key === NO_PHASE ? '' : key;
-  else if (groupBy === 'status') {
-    task.status = key;
-    if (key === 'Erledigt') task.progress = 100;
-    if (key === 'Offen' && task.progress === 100) task.progress = 0;
-  }
+  else if (groupBy === 'status') setTaskStatus(task, key);
 }
 
 function populateGroupControls() {
@@ -477,22 +488,36 @@ function saveTasks() {
   }
 }
 
-function showToast(msg, type = 'success') {
+// options: { duration, actionLabel, actionIcon, onAction } – z. B. für "Rückgängig"
+let toastTimer = null;
+function showToast(msg, type = 'success', options = {}) {
   const toast = document.getElementById('toast');
   const toastMsg = document.getElementById('toastMessage');
   const toastIcon = document.getElementById('toastIcon');
+  const toastAction = document.getElementById('toastAction');
 
   toastMsg.innerText = msg;
   if (type === 'error') {
     setIcon(toastIcon, 'circle-alert', 'text-rose-400');
+  } else if (type === 'info') {
+    setIcon(toastIcon, 'clipboard-copy', 'text-indigo-300');
   } else {
     setIcon(toastIcon, 'circle-check', 'text-emerald-400');
   }
 
-  toast.classList.remove('translate-y-20', 'opacity-0');
-  setTimeout(() => {
-    toast.classList.add('translate-y-20', 'opacity-0');
-  }, 2600);
+  const hide = () => toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+  if (options.onAction) {
+    toastAction.innerHTML = `${options.actionIcon ? icon(options.actionIcon) : ''}${escapeHTML(options.actionLabel || 'OK')}`;
+    toastAction.onclick = () => { hide(); options.onAction(); };
+    toastAction.classList.remove('hidden');
+  } else {
+    toastAction.classList.add('hidden');
+    toastAction.onclick = null;
+  }
+
+  toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hide, options.duration || (options.onAction ? 8000 : 2600));
 }
 
 function getFilteredTasks() {
@@ -514,7 +539,9 @@ function getFilteredTasks() {
     const matchesStatus = status === 'ALL' || t.status === status;
     const matchesGroup = group === 'ALL' || (t.group || NO_GROUP) === group;
 
-    return matchesQuery && matchesPhase && matchesPriority && matchesStatus && matchesGroup;
+    const matchesInbox = !inboxOnly || isInboxTask(t);
+
+    return matchesQuery && matchesPhase && matchesPriority && matchesStatus && matchesGroup && matchesInbox;
   });
 }
 

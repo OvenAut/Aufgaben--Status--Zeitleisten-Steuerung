@@ -69,6 +69,18 @@
           <span class="sm:hidden">KI</span>
         </button>
 
+        <!-- Reports -->
+        <button onclick="openReportModal()" class="flex items-center gap-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold border border-slate-200 dark:border-slate-700 shadow-sm transition" title="Tages- und Wochenbericht erstellen">
+          <svg class="icon text-emerald-600 dark:text-emerald-400" aria-hidden="true"><use href="#i-file-text"></use></svg>
+          <span class="hidden md:inline">Berichte</span>
+        </button>
+
+        <!-- AI Proofreading: Korrektur aus Zwischenablage übernehmen -->
+        <button onclick="applyProofreadFromClipboard()" class="flex items-center gap-1.5 bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 active:scale-95 text-indigo-700 dark:text-indigo-300 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold border border-indigo-300 dark:border-indigo-700/60 shadow-sm transition" title="Von der KI korrigierte Texte (JSON) aus der Zwischenablage übernehmen">
+          <svg class="icon" aria-hidden="true"><use href="#i-spell-check"></use></svg>
+          <span class="hidden md:inline">KI-Korrektur</span>
+        </button>
+
         <!-- Add Task -->
         <button onclick="openTaskModal()" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold shadow-md shadow-emerald-600/25 transition">
           <svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>
@@ -94,6 +106,13 @@
               <svg class="icon text-blue-600 dark:text-blue-400 w-4" aria-hidden="true"><use href="#i-file-input"></use></svg> Backup importieren
               <input type="file" id="fileImportInput" accept=".json" class="hidden" onchange="importJSON(event)" />
             </label>
+            <div class="h-px bg-slate-100 dark:bg-slate-800 my-1"></div>
+            <button onclick="copyProofreadForFilteredTasks()" class="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5" title="Prompt + JSON aller aktuell gefilterten Aufgaben für die KI-Rechtschreibprüfung kopieren">
+              <svg class="icon text-indigo-600 dark:text-indigo-400 w-4" aria-hidden="true"><use href="#i-spell-check"></use></svg> Gefilterte Texte von KI prüfen lassen
+            </button>
+            <button onclick="applyProofreadFromClipboard()" class="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5">
+              <svg class="icon text-indigo-600 dark:text-indigo-400 w-4" aria-hidden="true"><use href="#i-clipboard-paste"></use></svg> KI-Korrektur übernehmen
+            </button>
             <div class="h-px bg-slate-100 dark:bg-slate-800 my-1"></div>
             <button onclick="resetToSampleData()" class="w-full text-left px-3.5 py-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 flex items-center gap-2.5">
               <svg class="icon w-4" aria-hidden="true"><use href="#i-rotate-ccw"></use></svg> Demodaten für dieses Projekt
@@ -121,6 +140,23 @@
 
   <!-- Full-Bleed Edge-to-Edge Main Container -->
   <main class="flex-1 w-full px-3 lg:px-6 py-3 flex flex-col gap-3 min-h-0 overflow-hidden">
+    <!-- Schnellerfassung: nur Titel + Beschreibung, Zuordnung später -->
+    <form id="quickAddForm" onsubmit="handleQuickAdd(event)" class="bg-white dark:bg-slate-900/70 border border-amber-300/70 dark:border-amber-700/40 rounded-xl p-2 flex flex-wrap sm:flex-nowrap items-center gap-2 shadow-xs flex-shrink-0">
+      <span class="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 px-1.5 flex-shrink-0">
+        <svg class="icon" aria-hidden="true"><use href="#i-zap"></use></svg> Schnell erfassen
+      </span>
+      <input type="text" id="quickTitle" required placeholder="Titel der Aufgabe *" autocomplete="off"
+             class="flex-1 min-w-[160px] px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-[#030712] border border-slate-200 dark:border-slate-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 outline-none transition" />
+      <input type="text" id="quickNotes" placeholder="Beschreibung (optional) – Enter speichert" autocomplete="off"
+             class="flex-[2] min-w-[200px] px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-[#030712] border border-slate-200 dark:border-slate-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 outline-none transition" />
+      <button type="submit" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 active:scale-95 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition flex-shrink-0">
+        <svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg> Hinzufügen
+      </button>
+      <button type="button" id="btnInboxFilter" onclick="toggleInboxFilter()" class="hidden px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition flex-shrink-0" title="Nur schnell erfasste, noch nicht zugeordnete Aufgaben anzeigen">
+        <svg class="icon" aria-hidden="true"><use href="#i-inbox"></use></svg> <span id="inboxCountLabel">0 im Eingang</span>
+      </button>
+    </form>
+
     <!-- Quick KPI Stats Bar (Edge-to-Edge Fluid Grid) -->
     <section class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2.5 flex-shrink-0">
       <!-- Total -->
@@ -570,6 +606,27 @@
                     class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none resize-none"></textarea>
         </div>
 
+        <!-- KI-Rechtschreibprüfung -->
+        <div class="bg-indigo-50/70 dark:bg-indigo-950/25 border border-indigo-200 dark:border-indigo-800/50 rounded-xl p-3 space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="font-semibold text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5 text-xs">
+              <svg class="icon" aria-hidden="true"><use href="#i-spell-check"></use></svg> KI-Rechtschreibprüfung
+            </span>
+            <div class="flex items-center gap-1.5">
+              <button type="button" onclick="copyProofreadForForm()" class="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium flex items-center gap-1.5 transition active:scale-95" title="Titel, nächster Schritt und Notizen mit Prompt als JSON in die Zwischenablage kopieren">
+                <svg class="icon" aria-hidden="true"><use href="#i-clipboard-copy"></use></svg> Prüfen lassen
+              </button>
+              <button type="button" onclick="applyProofreadToForm()" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700/60 text-xs font-medium flex items-center gap-1.5 transition active:scale-95" title="Antwort der KI aus der Zwischenablage in dieses Formular übernehmen">
+                <svg class="icon" aria-hidden="true"><use href="#i-clipboard-paste"></use></svg> Korrektur einfügen
+              </button>
+            </div>
+          </div>
+          <label class="flex items-center gap-2 text-[11px] text-indigo-900/80 dark:text-indigo-300/80 cursor-pointer w-max">
+            <input type="checkbox" id="aiAutoCopy" onchange="setAiAutoCopy(this.checked)" class="accent-indigo-600" />
+            Beim Speichern automatisch Prüf-Prompt in die Zwischenablage kopieren
+          </label>
+        </div>
+
         <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
           <button type="button" onclick="closeTaskModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition font-medium">
             Abbrechen
@@ -579,6 +636,88 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Tages- / Wochenbericht -->
+  <div id="reportModal" class="hidden fixed inset-0 z-50 bg-slate-950/70 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 w-full max-w-4xl h-full max-h-[94vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-50/80 dark:bg-slate-950/60 flex-shrink-0">
+        <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <svg class="icon text-emerald-500" aria-hidden="true"><use href="#i-file-text"></use></svg> Berichte
+        </h3>
+        <div class="bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center text-xs">
+          <button id="reportTabDaily" onclick="setReportType('daily')" class="px-3 py-1 rounded flex items-center gap-1.5 transition"><svg class="icon" aria-hidden="true"><use href="#i-calendar-days"></use></svg> Tagesbericht</button>
+          <button id="reportTabWeekly" onclick="setReportType('weekly')" class="px-3 py-1 rounded flex items-center gap-1.5 transition"><svg class="icon" aria-hidden="true"><use href="#i-calendar-range"></use></svg> Wochenbericht</button>
+        </div>
+        <button onclick="closeReportModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 transition">
+          <svg class="icon text-lg" aria-hidden="true"><use href="#i-x"></use></svg>
+        </button>
+      </div>
+
+      <div class="px-5 py-2.5 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-2.5 text-xs flex-shrink-0">
+        <div class="flex items-center gap-1">
+          <button onclick="shiftReportDate(-1)" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300" title="Zurück"><svg class="icon" aria-hidden="true"><use href="#i-chevron-left"></use></svg></button>
+          <input type="date" id="reportDate" onchange="renderReport()" class="px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 outline-none" />
+          <button onclick="shiftReportDate(1)" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300" title="Weiter"><svg class="icon" aria-hidden="true"><use href="#i-chevron-right"></use></svg></button>
+          <button onclick="setReportDateToday()" class="px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-emerald-700 dark:text-emerald-400 font-medium">Heute</button>
+        </div>
+        <span id="reportRangeLabel" class="font-semibold text-slate-700 dark:text-slate-300"></span>
+        <label class="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 cursor-pointer ml-auto">
+          <input type="checkbox" id="reportUseFilter" onchange="renderReport()" class="accent-emerald-600" /> nur aktuelle Filter
+        </label>
+        <label class="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
+          Zielgruppe
+          <select id="reportAudience" class="px-2 py-1 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 outline-none">
+            <option value="team">Internes Team</option>
+            <option value="pl">Projektleitung</option>
+            <option value="kunde">Kunde</option>
+          </select>
+        </label>
+      </div>
+
+      <div id="reportPreview" class="flex-1 overflow-y-auto custom-scroll p-5 space-y-4 text-xs sm:text-sm bg-slate-50/50 dark:bg-[#030712]/60"></div>
+
+      <div class="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/80 flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="copyReportPrompt('improve')" class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow transition active:scale-95" title="Bericht + Prompt kopieren: KI formuliert einen professionellen Bericht für die gewählte Zielgruppe">
+            <svg class="icon" aria-hidden="true"><use href="#i-sparkles"></use></svg> KI: Bericht verbessern
+          </button>
+          <button onclick="copyReportPrompt('evaluate')" class="px-3 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow transition active:scale-95" title="Bericht + Prompt kopieren: KI bewertet Risiken, Engpässe und gibt Empfehlungen">
+            <svg class="icon" aria-hidden="true"><use href="#i-chart-column"></use></svg> KI: Auswerten
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="copyReportMarkdown()" class="px-3 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-medium flex items-center gap-1.5 transition" title="Bericht als Markdown kopieren">
+            <svg class="icon" aria-hidden="true"><use href="#i-copy"></use></svg> Bericht kopieren
+          </button>
+          <button onclick="downloadReport()" class="px-3 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-medium flex items-center gap-1.5 transition" title="Bericht als Markdown-Datei speichern">
+            <svg class="icon" aria-hidden="true"><use href="#i-download"></use></svg> .md
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: KI-Korrektur einfügen (Fallback, wenn der Browser die Zwischenablage nicht lesen darf) -->
+  <div id="proofreadPasteModal" class="hidden fixed inset-0 z-[55] bg-slate-950/70 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <svg class="icon text-indigo-500" aria-hidden="true"><use href="#i-spell-check"></use></svg> KI-Korrektur einfügen
+        </h3>
+        <button onclick="closeProofreadPasteModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition">
+          <svg class="icon text-lg" aria-hidden="true"><use href="#i-x"></use></svg>
+        </button>
+      </div>
+      <div class="p-5 space-y-2 text-xs">
+        <p id="proofreadPasteHint" class="text-slate-600 dark:text-slate-400">Der Browser erlaubt kein direktes Lesen der Zwischenablage. Füge die JSON-Antwort der KI hier ein (Strg+V / ⌘+V):</p>
+        <textarea id="proofreadPasteInput" rows="8" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-indigo-500 text-slate-900 dark:text-slate-100 font-mono text-[11px] outline-none resize-none custom-scroll"></textarea>
+      </div>
+      <div class="px-5 py-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
+        <button onclick="closeProofreadPasteModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium transition">Abbrechen</button>
+        <button onclick="confirmProofreadPaste()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium shadow transition">Übernehmen</button>
+      </div>
     </div>
   </div>
 
@@ -676,9 +815,10 @@
   </div>
 
   <!-- Notification Toast -->
-  <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 dark:bg-slate-800 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-xs sm:text-sm border border-slate-700">
+  <div id="toast" class="fixed bottom-5 right-5 z-[60] max-w-md transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 bg-slate-900 dark:bg-slate-800 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-xs sm:text-sm border border-slate-700">
     <svg id="toastIcon" class="icon text-emerald-400" aria-hidden="true"><use href="#i-circle-check"></use></svg>
     <span id="toastMessage">Aktion erfolgreich</span>
+    <button id="toastAction" type="button" class="hidden flex-shrink-0 ml-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 font-semibold text-xs flex items-center gap-1.5 transition"></button>
   </div>
 
   <script src="js/icons.js"></script>
@@ -687,6 +827,9 @@
   <script src="js/gantt.js"></script>
   <script src="js/views.js"></script>
   <script src="js/dialogs.js"></script>
+  <script src="js/ai-proofread.js"></script>
+  <script src="js/quick-add.js"></script>
+  <script src="js/reports.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>
