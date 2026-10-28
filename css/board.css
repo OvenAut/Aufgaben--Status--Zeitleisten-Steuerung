@@ -1,0 +1,196 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/* Lucide-Icons (Sprite aus js/icons.js): Größe und Farbe kommen wie bei Schrift vom Text */
+.icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  vertical-align: -0.125em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  overflow: visible;
+}
+/* sehr kleine Icons etwas kräftiger, damit sie lesbar bleiben */
+.text-\[8px\] > .icon, .icon.text-\[8px\], .icon.text-\[9px\], .icon.text-\[10px\] {
+  stroke-width: 2.5;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Scrollbars themed */
+.custom-scroll::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+.dark .custom-scroll::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+}
+.dark .custom-scroll::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.6);
+  border-radius: 9999px;
+}
+html:not(.dark) .custom-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+html:not(.dark) .custom-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+/* Kanban Card styles */
+.kanban-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  cursor: grab;
+}
+.kanban-card:active {
+  cursor: grabbing;
+}
+.kanban-card.dragging {
+  opacity: 0.35;
+  transform: scale(0.98);
+}
+.drop-highlight {
+  border: 2px dashed #10b981 !important;
+  background-color: rgba(16, 185, 129, 0.08) !important;
+}
+
+/* Gantt Row and Interactive Styles */
+.gantt-row {
+  transition: background-color 0.12s ease;
+  position: relative;
+}
+.dark .gantt-row:hover {
+  background-color: rgba(30, 41, 59, 0.55);
+}
+html:not(.dark) .gantt-row:hover {
+  background-color: rgba(241, 245, 249, 0.85);
+}
+
+.gantt-bar-wrapper {
+  position: absolute;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  transition: left 0.15s ease, width 0.15s ease;
+  z-index: 20;
+}
+
+.gantt-bar {
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+}
+.gantt-bar:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+/* Hover '+' Connector Handle */
+.dep-connect-btn {
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s ease;
+  pointer-events: none;
+  z-index: 45;
+}
+.gantt-row:hover .dep-connect-btn,
+.gantt-bar-wrapper:hover .dep-connect-btn,
+.dep-connect-btn:hover {
+  opacity: 1 !important;
+  transform: scale(1) !important;
+  pointer-events: auto !important;
+}
+
+/* Dependency Linking crosshair and target feedback */
+body.is-linking-dependency {
+  cursor: crosshair !important;
+  user-select: none;
+}
+body.is-linking-dependency .gantt-row {
+  cursor: pointer !important;
+}
+body.is-linking-dependency .gantt-row.valid-target:hover {
+  background-color: rgba(16, 185, 129, 0.2) !important;
+  box-shadow: inset 0 0 0 2px #10b981;
+}
+body.is-linking-dependency .gantt-left-row.valid-target:hover {
+  background-color: rgba(16, 185, 129, 0.2) !important;
+  box-shadow: inset 0 0 0 2px #10b981;
+}
+body.is-linking-dependency .gantt-row.invalid-target,
+body.is-linking-dependency .gantt-left-row.invalid-target {
+  opacity: 0.45;
+  cursor: not-allowed !important;
+}
+
+/* Dependency connectors (Ende -> Anfang) */
+.dep-edge {
+  transition: opacity 0.15s ease;
+}
+.dep-edge .dep-hit {
+  cursor: pointer;
+  pointer-events: stroke;
+}
+.dep-edge .dep-line {
+  pointer-events: none;
+  transition: stroke-width 0.15s ease;
+}
+.dep-edge:hover .dep-line {
+  stroke-width: 3.5;
+}
+
+/* Hover: Abhängigkeitskette hervorheben */
+#ganttView.dep-focus .gantt-row:not(.dep-related) .gantt-bar-wrapper,
+#ganttView.dep-focus .gantt-group-row:not(.dep-related) .gantt-group-bar {
+  opacity: 0.25;
+}
+#ganttView.dep-focus .gantt-left-row:not(.dep-related) {
+  opacity: 0.45;
+}
+#ganttView.dep-focus .dep-edge:not(.dep-related) {
+  opacity: 0.12;
+}
+#ganttView.dep-focus .dep-edge.dep-related .dep-line {
+  stroke-width: 3;
+}
+
+/* Group rows */
+.gantt-group-left {
+  cursor: pointer;
+  user-select: none;
+}
+.gantt-group-left.drag-over-group {
+  box-shadow: inset 0 0 0 2px #10b981;
+  background-color: rgba(16, 185, 129, 0.12) !important;
+}
+.group-chevron {
+  transition: transform 0.15s ease;
+}
+.collapsed .group-chevron {
+  transform: rotate(-90deg);
+}
+
+/* Left Sidebar Task Row Dragging & Grouping */
+.gantt-left-row {
+  cursor: grab;
+  user-select: none;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+.gantt-left-row:active {
+  cursor: grabbing;
+}
+.gantt-left-row.dragging {
+  opacity: 0.35;
+  background-color: rgba(16, 185, 129, 0.15);
+}
+.gantt-left-row.drag-over-top {
+  border-top: 2px solid #10b981 !important;
+}
+.gantt-left-row.drag-over-bottom {
+  border-bottom: 2px solid #10b981 !important;
+}

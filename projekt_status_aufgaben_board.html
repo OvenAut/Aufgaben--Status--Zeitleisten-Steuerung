@@ -6,204 +6,9 @@
   <title>Projekt Status & Aufgaben Board (2D & 3D Gantt)</title>
   <!-- Tailwind CSS via CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- FontAwesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              50: '#f0fdf4',
-              500: '#10b981',
-              600: '#059669',
-              700: '#047857'
-            }
-          }
-        }
-      }
-    };
-  </script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      transition: background-color 0.2s ease, color 0.2s ease;
-    }
-
-    /* Scrollbars themed */
-    .custom-scroll::-webkit-scrollbar {
-      width: 7px;
-      height: 7px;
-    }
-    .dark .custom-scroll::-webkit-scrollbar-track {
-      background: rgba(15, 23, 42, 0.6);
-    }
-    .dark .custom-scroll::-webkit-scrollbar-thumb {
-      background: rgba(71, 85, 105, 0.6);
-      border-radius: 9999px;
-    }
-    html:not(.dark) .custom-scroll::-webkit-scrollbar-track {
-      background: #f1f5f9;
-    }
-    html:not(.dark) .custom-scroll::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 9999px;
-    }
-
-    /* Kanban Card styles */
-    .kanban-card {
-      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
-      cursor: grab;
-    }
-    .kanban-card:active {
-      cursor: grabbing;
-    }
-    .kanban-card.dragging {
-      opacity: 0.35;
-      transform: scale(0.98);
-    }
-    .drop-highlight {
-      border: 2px dashed #10b981 !important;
-      background-color: rgba(16, 185, 129, 0.08) !important;
-    }
-
-    /* Gantt Row and Interactive Styles */
-    .gantt-row {
-      transition: background-color 0.12s ease;
-      position: relative;
-    }
-    .dark .gantt-row:hover {
-      background-color: rgba(30, 41, 59, 0.55);
-    }
-    html:not(.dark) .gantt-row:hover {
-      background-color: rgba(241, 245, 249, 0.85);
-    }
-
-    .gantt-bar-wrapper {
-      position: absolute;
-      height: 36px;
-      display: flex;
-      align-items: center;
-      transition: left 0.15s ease, width 0.15s ease;
-      z-index: 20;
-    }
-
-    .gantt-bar {
-      transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
-      cursor: pointer;
-    }
-    .gantt-bar:hover {
-      filter: brightness(1.08);
-      transform: translateY(-1px);
-    }
-
-    /* Hover '+' Connector Handle */
-    .dep-connect-btn {
-      opacity: 0;
-      transform: scale(0.85);
-      transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s ease;
-      pointer-events: none;
-      z-index: 45;
-    }
-    .gantt-row:hover .dep-connect-btn,
-    .gantt-bar-wrapper:hover .dep-connect-btn,
-    .dep-connect-btn:hover {
-      opacity: 1 !important;
-      transform: scale(1) !important;
-      pointer-events: auto !important;
-    }
-
-    /* Dependency Linking crosshair and target feedback */
-    body.is-linking-dependency {
-      cursor: crosshair !important;
-      user-select: none;
-    }
-    body.is-linking-dependency .gantt-row {
-      cursor: pointer !important;
-    }
-    body.is-linking-dependency .gantt-row.valid-target:hover {
-      background-color: rgba(16, 185, 129, 0.2) !important;
-      box-shadow: inset 0 0 0 2px #10b981;
-    }
-    body.is-linking-dependency .gantt-left-row.valid-target:hover {
-      background-color: rgba(16, 185, 129, 0.2) !important;
-      box-shadow: inset 0 0 0 2px #10b981;
-    }
-    body.is-linking-dependency .gantt-row.invalid-target,
-    body.is-linking-dependency .gantt-left-row.invalid-target {
-      opacity: 0.45;
-      cursor: not-allowed !important;
-    }
-
-    /* Dependency connectors (Ende -> Anfang) */
-    .dep-edge {
-      transition: opacity 0.15s ease;
-    }
-    .dep-edge .dep-hit {
-      cursor: pointer;
-      pointer-events: stroke;
-    }
-    .dep-edge .dep-line {
-      pointer-events: none;
-      transition: stroke-width 0.15s ease;
-    }
-    .dep-edge:hover .dep-line {
-      stroke-width: 3.5;
-    }
-
-    /* Hover: Abhängigkeitskette hervorheben */
-    #ganttView.dep-focus .gantt-row:not(.dep-related) .gantt-bar-wrapper,
-    #ganttView.dep-focus .gantt-group-row:not(.dep-related) .gantt-group-bar {
-      opacity: 0.25;
-    }
-    #ganttView.dep-focus .gantt-left-row:not(.dep-related) {
-      opacity: 0.45;
-    }
-    #ganttView.dep-focus .dep-edge:not(.dep-related) {
-      opacity: 0.12;
-    }
-    #ganttView.dep-focus .dep-edge.dep-related .dep-line {
-      stroke-width: 3;
-    }
-
-    /* Group rows */
-    .gantt-group-left {
-      cursor: pointer;
-      user-select: none;
-    }
-    .gantt-group-left.drag-over-group {
-      box-shadow: inset 0 0 0 2px #10b981;
-      background-color: rgba(16, 185, 129, 0.12) !important;
-    }
-    .group-chevron {
-      transition: transform 0.15s ease;
-    }
-    .collapsed .group-chevron {
-      transform: rotate(-90deg);
-    }
-
-    /* Left Sidebar Task Row Dragging & Grouping */
-    .gantt-left-row {
-      cursor: grab;
-      user-select: none;
-      transition: background-color 0.15s ease, opacity 0.15s ease;
-    }
-    .gantt-left-row:active {
-      cursor: grabbing;
-    }
-    .gantt-left-row.dragging {
-      opacity: 0.35;
-      background-color: rgba(16, 185, 129, 0.15);
-    }
-    .gantt-left-row.drag-over-top {
-      border-top: 2px solid #10b981 !important;
-    }
-    .gantt-left-row.drag-over-bottom {
-      border-bottom: 2px solid #10b981 !important;
-    }
-  </style>
+  <!-- Lucide Icons (lokal, siehe assets/icons/lucide + tools/build-icons.mjs) -->
+  <script src="js/tailwind.config.js"></script>
+  <link rel="stylesheet" href="css/board.css" />
 </head>
 <body class="bg-slate-50 text-slate-800 dark:bg-[#030712] dark:text-slate-100 h-screen w-screen overflow-hidden flex flex-col antialiased selection:bg-emerald-500 selection:text-white">
 
@@ -213,7 +18,7 @@
       <!-- Title & Dynamic Workspace Detection -->
       <div class="flex items-center space-x-3">
         <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white text-base font-bold">
-          <i class="fa-solid fa-layer-group"></i>
+          <svg class="icon" aria-hidden="true"><use href="#i-layers"></use></svg>
         </div>
         <div>
           <div class="flex items-center gap-2">
@@ -221,7 +26,7 @@
               Projekt Hub
             </h1>
             <span id="workspaceBadge" class="text-xs font-mono font-medium px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5" title="Erkannter Workspace">
-              <i class="fa-regular fa-folder-open text-[10px]"></i>
+              <svg class="icon text-[10px]" aria-hidden="true"><use href="#i-folder-open"></use></svg>
               <span id="workspaceBadgeName">Default</span>
             </span>
           </div>
@@ -238,60 +43,60 @@
         <!-- View Toggle -->
         <div class="bg-slate-100 dark:bg-slate-800/90 p-1 rounded-xl border border-slate-200 dark:border-slate-700/70 flex items-center text-xs">
           <button id="btnViewGantt" onclick="switchView('gantt')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all bg-emerald-600 text-white shadow-sm">
-            <i class="fa-solid fa-chart-gantt"></i>
+            <svg class="icon" aria-hidden="true"><use href="#i-chart-gantt"></use></svg>
             <span>Gantt-Chart</span>
           </button>
           <button id="btnViewKanban" onclick="switchView('kanban')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200">
-            <i class="fa-solid fa-table-columns"></i>
+            <svg class="icon" aria-hidden="true"><use href="#i-kanban"></use></svg>
             <span>Kanban</span>
           </button>
           <button id="btnViewTable" onclick="switchView('table')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200">
-            <i class="fa-solid fa-table-list"></i>
+            <svg class="icon" aria-hidden="true"><use href="#i-table"></use></svg>
             <span>Tabelle</span>
           </button>
         </div>
 
         <!-- Theme Switcher -->
         <button id="themeToggleBtn" onclick="toggleTheme()" class="p-2 sm:px-3 sm:py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center gap-1.5 text-xs sm:text-sm font-medium transition shadow-sm" title="Zwischen Hell- und Dunkelmodus wechseln">
-          <i id="themeToggleIcon" class="fa-solid fa-sun text-amber-500 text-xs sm:text-sm"></i>
+          <svg id="themeToggleIcon" class="icon text-amber-500 text-xs sm:text-sm" aria-hidden="true"><use href="#i-sun"></use></svg>
           <span id="themeToggleLabel" class="hidden sm:inline text-xs">Hell</span>
         </button>
 
         <!-- AI Import -->
         <button onclick="openAiImportModal()" class="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold shadow-md shadow-indigo-600/20 border border-indigo-500/30 transition">
-          <i class="fa-solid fa-wand-magic-sparkles text-indigo-200"></i>
+          <svg class="icon text-indigo-200" aria-hidden="true"><use href="#i-wand-sparkles"></use></svg>
           <span class="hidden sm:inline">KI-Schnellimport</span>
           <span class="sm:hidden">KI</span>
         </button>
 
         <!-- Add Task -->
         <button onclick="openTaskModal()" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold shadow-md shadow-emerald-600/25 transition">
-          <i class="fa-solid fa-plus"></i>
+          <svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>
           <span>Neue Aufgabe</span>
         </button>
 
         <!-- Options Menu -->
         <div class="relative">
           <button onclick="toggleMenu()" id="menuButton" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 transition" aria-label="Optionen">
-            <i class="fa-solid fa-ellipsis-vertical px-0.5"></i>
+            <svg class="icon px-0.5" aria-hidden="true"><use href="#i-ellipsis-vertical"></use></svg>
           </button>
           <div id="dropdownMenu" class="hidden absolute right-0 mt-2 w-56 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 py-1.5 text-xs text-slate-700 dark:text-slate-300">
             <div class="px-3 py-1.5 text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800" id="dropdownWorkspaceTitle">
               Workspace: default
             </div>
             <button onclick="exportJSON()" class="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5">
-              <i class="fa-solid fa-file-code text-teal-600 dark:text-teal-400 w-4"></i> Export als JSON
+              <svg class="icon text-teal-600 dark:text-teal-400 w-4" aria-hidden="true"><use href="#i-file-code"></use></svg> Export als JSON
             </button>
             <button onclick="exportCSV()" class="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5">
-              <i class="fa-solid fa-file-csv text-emerald-600 dark:text-emerald-400 w-4"></i> Export als CSV
+              <svg class="icon text-emerald-600 dark:text-emerald-400 w-4" aria-hidden="true"><use href="#i-file-spreadsheet"></use></svg> Export als CSV
             </button>
             <label class="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer">
-              <i class="fa-solid fa-file-import text-blue-600 dark:text-blue-400 w-4"></i> Backup importieren
+              <svg class="icon text-blue-600 dark:text-blue-400 w-4" aria-hidden="true"><use href="#i-file-input"></use></svg> Backup importieren
               <input type="file" id="fileImportInput" accept=".json" class="hidden" onchange="importJSON(event)" />
             </label>
             <div class="h-px bg-slate-100 dark:bg-slate-800 my-1"></div>
             <button onclick="resetToSampleData()" class="w-full text-left px-3.5 py-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 flex items-center gap-2.5">
-              <i class="fa-solid fa-arrow-rotate-left w-4"></i> Demodaten für dieses Projekt
+              <svg class="icon w-4" aria-hidden="true"><use href="#i-rotate-ccw"></use></svg> Demodaten für dieses Projekt
             </button>
           </div>
         </div>
@@ -310,7 +115,7 @@
       <span class="hidden md:inline text-emerald-100 text-xs flex-shrink-0">(ESC zum Abbrechen)</span>
     </div>
     <button onclick="cancelDependencyLinking()" class="bg-black/25 hover:bg-black/40 text-white px-3 py-1 rounded-lg text-xs font-semibold transition active:scale-95 flex items-center gap-1.5 shadow-sm flex-shrink-0">
-      <i class="fa-solid fa-xmark"></i> Abbrechen
+      <svg class="icon" aria-hidden="true"><use href="#i-x"></use></svg> Abbrechen
     </button>
   </div>
 
@@ -322,7 +127,7 @@
       <div class="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-xl p-2.5 sm:p-3 shadow-xs">
         <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-medium mb-0.5">
           <span>Gesamt</span>
-          <i class="fa-solid fa-layer-group text-slate-400 dark:text-slate-500 text-xs"></i>
+          <svg class="icon text-slate-400 dark:text-slate-500 text-xs" aria-hidden="true"><use href="#i-layers"></use></svg>
         </div>
         <div class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100" id="statTotal">0</div>
         <div class="text-[10px] text-slate-500 dark:text-slate-500">Aktive Arbeitspakete</div>
@@ -332,7 +137,7 @@
       <div class="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-xl p-2.5 sm:p-3 shadow-xs">
         <div class="flex items-center justify-between text-xs text-blue-600 dark:text-blue-400 font-medium mb-0.5">
           <span>In Arbeit</span>
-          <i class="fa-solid fa-spinner animate-spin text-blue-500 text-xs" style="animation-duration: 3s;"></i>
+          <svg class="icon animate-spin text-blue-500 text-xs" style="animation-duration: 3s;" aria-hidden="true"><use href="#i-loader-circle"></use></svg>
         </div>
         <div class="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-300" id="statInProgress">0</div>
         <div class="text-[10px] text-slate-500 dark:text-slate-500">Fokus-Aufgaben</div>
@@ -342,7 +147,7 @@
       <div class="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-xl p-2.5 sm:p-3 shadow-xs">
         <div class="flex items-center justify-between text-xs text-rose-600 dark:text-rose-400 font-medium mb-0.5">
           <span>Blockiert</span>
-          <i class="fa-solid fa-triangle-exclamation text-rose-500 text-xs"></i>
+          <svg class="icon text-rose-500 text-xs" aria-hidden="true"><use href="#i-triangle-alert"></use></svg>
         </div>
         <div class="text-xl sm:text-2xl font-bold text-rose-600 dark:text-rose-400" id="statBlocked">0</div>
         <div class="text-[10px] text-rose-500/80 dark:text-rose-500/70">Handlungsbedarf!</div>
@@ -352,7 +157,7 @@
       <div class="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-xl p-2.5 sm:p-3 shadow-xs">
         <div class="flex items-center justify-between text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-0.5">
           <span>Erledigt</span>
-          <i class="fa-solid fa-circle-check text-emerald-500 text-xs"></i>
+          <svg class="icon text-emerald-500 text-xs" aria-hidden="true"><use href="#i-circle-check"></use></svg>
         </div>
         <div class="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400" id="statDone">0</div>
         <div class="text-[10px] text-emerald-600/80 dark:text-emerald-500/80">Abgeschlossen</div>
@@ -377,13 +182,13 @@
     <!-- Filters & Search Toolbar (Fluid Edge-to-Edge) -->
     <section class="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 flex flex-wrap items-center gap-2.5 shadow-xs flex-shrink-0">
       <div class="min-w-[200px] flex-1 relative">
-        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-xs"></i>
+        <svg class="icon absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-xs" aria-hidden="true"><use href="#i-search"></use></svg>
         <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Suchen nach Titel, Gruppe, Verantwortlichem, Notizen …" 
                class="w-full pl-8 pr-3 py-1.5 rounded-lg bg-slate-50 dark:bg-[#030712] border border-slate-200 dark:border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 outline-none transition" />
       </div>
 
       <div class="min-w-[140px] flex items-center gap-1.5">
-        <i class="fa-solid fa-object-group text-slate-400 dark:text-slate-500 text-xs" title="Gruppieren nach"></i>
+        <svg class="icon text-slate-400 dark:text-slate-500 text-xs" title="Gruppieren nach" aria-hidden="true"><use href="#i-group"></use></svg>
         <select id="groupBySelect" onchange="setGroupBy(this.value)" title="Aufgaben gruppieren nach" class="w-full px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800/60 focus:border-emerald-500 text-xs text-emerald-800 dark:text-emerald-300 font-medium outline-none transition">
           <option value="group">Gruppiert: Gruppe</option>
           <option value="phase">Gruppiert: Phase</option>
@@ -432,7 +237,7 @@
       </div>
 
       <button onclick="resetFilters()" title="Filter zurücksetzen" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 text-xs flex items-center gap-1.5 transition">
-        <i class="fa-solid fa-filter-circle-xmark"></i>
+        <svg class="icon" aria-hidden="true"><use href="#i-funnel-x"></use></svg>
         <span class="hidden sm:inline">Zurücksetzen</span>
       </button>
     </section>
@@ -444,23 +249,23 @@
         <div class="flex items-center gap-2">
           <span class="text-slate-600 dark:text-slate-400 font-medium">Zeitskala:</span>
           <div class="bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center" title="Zoom: Strg/⌘ + Mausrad über der Zeitleiste">
-            <button onclick="zoomGantt(1 / 1.4)" class="w-7 py-1 rounded text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition" title="Rauszoomen – mehr Zeitraum anzeigen"><i class="fa-solid fa-magnifying-glass-minus text-[11px]"></i></button>
+            <button onclick="zoomGantt(1 / 1.4)" class="w-7 py-1 rounded text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition" title="Rauszoomen – mehr Zeitraum anzeigen"><svg class="icon text-[11px]" aria-hidden="true"><use href="#i-zoom-out"></use></svg></button>
             <button onclick="setGanttZoom('day')" id="ganttZoomDay" data-zoom-preset class="px-2 py-1 rounded transition">Tage</button>
             <button onclick="setGanttZoom('week')" id="ganttZoomWeek" data-zoom-preset class="px-2 py-1 rounded transition">Wochen</button>
             <button onclick="setGanttZoom('month')" id="ganttZoomMonth" data-zoom-preset class="px-2 py-1 rounded transition">Monate</button>
             <button onclick="setGanttZoom('quarter')" id="ganttZoomQuarter" data-zoom-preset class="px-2 py-1 rounded transition">Quartal</button>
             <button onclick="setGanttZoom('year')" id="ganttZoomYear" data-zoom-preset class="px-2 py-1 rounded transition">Jahr</button>
-            <button onclick="zoomGantt(1.4)" class="w-7 py-1 rounded text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition" title="Reinzoomen – weniger Zeitraum, mehr Details"><i class="fa-solid fa-magnifying-glass-plus text-[11px]"></i></button>
+            <button onclick="zoomGantt(1.4)" class="w-7 py-1 rounded text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition" title="Reinzoomen – weniger Zeitraum, mehr Details"><svg class="icon text-[11px]" aria-hidden="true"><use href="#i-zoom-in"></use></svg></button>
           </div>
           <span id="ganttZoomInfo" class="text-[11px] text-slate-500 dark:text-slate-400 font-mono whitespace-nowrap" title="Sichtbarer Zeitraum"></span>
           <button onclick="scrollGanttToToday()" class="ml-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-400 border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition shadow-xs">
-            <i class="fa-solid fa-bullseye text-[10px]"></i> Heute fokussieren
+            <svg class="icon text-[10px]" aria-hidden="true"><use href="#i-locate-fixed"></use></svg> Heute fokussieren
           </button>
           <button id="btnToggleAllGroups" onclick="toggleAllGroups()" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition shadow-xs">
-            <i class="fa-solid fa-layer-group text-[10px]"></i> <span id="btnToggleAllGroupsLabel">Alle zuklappen</span>
+            <svg class="icon text-[10px]" aria-hidden="true"><use href="#i-layers"></use></svg> <span id="btnToggleAllGroupsLabel">Alle zuklappen</span>
           </button>
           <button id="btnResolveConflicts" onclick="resolveAllConflicts()" class="hidden px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800/60 flex items-center gap-1.5 transition shadow-xs" title="Nachfolger so verschieben, dass sie erst nach dem Ende ihrer Vorgänger beginnen">
-            <i class="fa-solid fa-triangle-exclamation text-[10px]"></i> <span id="conflictCountLabel">0 Konflikte</span> · auflösen
+            <svg class="icon text-[10px]" aria-hidden="true"><use href="#i-triangle-alert"></use></svg> <span id="conflictCountLabel">0 Konflikte</span> · auflösen
           </button>
         </div>
 
@@ -486,7 +291,7 @@
         <!-- Gantt Left Side: Task Names & Phasen (Draggable) -->
         <div id="ganttLabelScroll" class="w-64 sm:w-80 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-[#0b0f19] z-20 flex flex-col select-none overflow-y-auto custom-scroll">
           <div class="h-12 flex-shrink-0 px-3.5 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-600 dark:text-slate-400 text-xs flex items-center justify-between uppercase tracking-wider bg-slate-100 dark:bg-[#030712] sticky top-0 z-10">
-            <span class="flex items-center gap-1.5"><i class="fa-solid fa-grip-vertical text-slate-400 text-[10px]"></i> Gruppe / Aufgabe</span>
+            <span class="flex items-center gap-1.5"><svg class="icon text-slate-400 text-[10px]" aria-hidden="true"><use href="#i-grip-vertical"></use></svg> Gruppe / Aufgabe</span>
             <span>Fortschritt</span>
           </div>
           <div id="ganttTaskLabelList" class="flex-shrink-0"></div>
@@ -604,22 +409,22 @@
           <thead class="bg-slate-100/80 dark:bg-[#030712] text-slate-600 dark:text-slate-400 font-semibold uppercase text-[11px] tracking-wider border-b border-slate-200 dark:border-slate-800 select-none sticky top-0 z-10">
             <tr>
               <th scope="col" class="py-3 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white" onclick="sortTable('title')">
-                Aufgabe / Arbeitspaket <i id="sortIcon_title" class="fa-solid fa-sort ml-1"></i>
+                Aufgabe / Arbeitspaket <svg id="sortIcon_title" class="icon ml-1" aria-hidden="true"><use href="#i-arrow-up-down"></use></svg>
               </th>
               <th scope="col" class="py-3 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white" onclick="sortTable('phase')">
-                Phase <i id="sortIcon_phase" class="fa-solid fa-sort ml-1"></i>
+                Phase <svg id="sortIcon_phase" class="icon ml-1" aria-hidden="true"><use href="#i-arrow-up-down"></use></svg>
               </th>
               <th scope="col" class="py-3 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white" onclick="sortTable('priority')">
-                Priorität <i id="sortIcon_priority" class="fa-solid fa-sort ml-1"></i>
+                Priorität <svg id="sortIcon_priority" class="icon ml-1" aria-hidden="true"><use href="#i-arrow-up-down"></use></svg>
               </th>
               <th scope="col" class="py-3 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white" onclick="sortTable('status')">
-                Status <i id="sortIcon_status" class="fa-solid fa-sort ml-1"></i>
+                Status <svg id="sortIcon_status" class="icon ml-1" aria-hidden="true"><use href="#i-arrow-up-down"></use></svg>
               </th>
               <th scope="col" class="py-3 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white" onclick="sortTable('progress')">
-                Fortschritt <i id="sortIcon_progress" class="fa-solid fa-sort ml-1"></i>
+                Fortschritt <svg id="sortIcon_progress" class="icon ml-1" aria-hidden="true"><use href="#i-arrow-up-down"></use></svg>
               </th>
               <th scope="col" class="py-3 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white" onclick="sortTable('startDate')">
-                Zeitraum <i id="sortIcon_startDate" class="fa-solid fa-sort ml-1"></i>
+                Zeitraum <svg id="sortIcon_startDate" class="icon ml-1" aria-hidden="true"><use href="#i-arrow-up-down"></use></svg>
               </th>
               <th scope="col" class="py-3 px-4">Vorgänger</th>
               <th scope="col" class="py-3 px-4">Nächster Schritt</th>
@@ -630,7 +435,7 @@
         </table>
       </div>
       <div id="tableEmptyState" class="hidden p-8 text-center text-slate-400 dark:text-slate-500 text-sm">
-        <i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-300 dark:text-slate-600 block"></i>
+        <svg class="icon text-3xl mb-2 text-slate-300 dark:text-slate-600 block" aria-hidden="true"><use href="#i-folder-open"></use></svg>
         Keine passenden Aufgaben für diese Filterkriterien gefunden.
       </div>
     </section>
@@ -641,10 +446,10 @@
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden transform transition-all">
       <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
         <h3 id="modalTitle" class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <i class="fa-solid fa-pen-to-square text-emerald-500 dark:text-emerald-400"></i> Neue Aufgabe erstellen
+          <svg class="icon text-emerald-500 dark:text-emerald-400" aria-hidden="true"><use href="#i-square-pen"></use></svg> Neue Aufgabe erstellen
         </h3>
         <button onclick="closeTaskModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition">
-          <i class="fa-solid fa-xmark text-lg"></i>
+          <svg class="icon text-lg" aria-hidden="true"><use href="#i-x"></use></svg>
         </button>
       </div>
 
@@ -661,13 +466,13 @@
         <!-- Group & Owner -->
         <div class="grid grid-cols-1 sm:grid-cols-[1fr_9rem] gap-3.5">
           <div>
-            <label class="block text-slate-700 dark:text-slate-300 font-medium mb-1 flex items-center gap-1.5"><i class="fa-solid fa-object-group text-emerald-500"></i> Gruppe / Baugruppe</label>
+            <label class="block text-slate-700 dark:text-slate-300 font-medium mb-1 flex items-center gap-1.5"><svg class="icon text-emerald-500" aria-hidden="true"><use href="#i-group"></use></svg> Gruppe / Baugruppe</label>
             <input type="text" id="taskGroup" list="groupOptions" placeholder="z. B. FG14, FG15, Roboter 4 …"
                    class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none" />
             <datalist id="groupOptions"></datalist>
           </div>
           <div>
-            <label class="block text-slate-700 dark:text-slate-300 font-medium mb-1 flex items-center gap-1.5"><i class="fa-solid fa-user text-emerald-500"></i> Verantwortlich</label>
+            <label class="block text-slate-700 dark:text-slate-300 font-medium mb-1 flex items-center gap-1.5"><svg class="icon text-emerald-500" aria-hidden="true"><use href="#i-user"></use></svg> Verantwortlich</label>
             <input type="text" id="taskOwner" list="ownerOptions" placeholder="z. B. OSO"
                    class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none" />
             <datalist id="ownerOptions"></datalist>
@@ -677,7 +482,7 @@
         <!-- Dependency Predecessor Selector (mehrere Vorgänger möglich) -->
         <div class="bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 rounded-xl p-3 space-y-2">
           <label class="block text-emerald-900 dark:text-emerald-300 font-semibold flex items-center justify-between">
-            <span class="flex items-center gap-1.5"><i class="fa-solid fa-link text-emerald-500"></i> Abhängig von (Vorgänger) <span id="predecessorCount" class="text-[10px] font-normal text-emerald-700/80 dark:text-emerald-400/80"></span></span>
+            <span class="flex items-center gap-1.5"><svg class="icon text-emerald-500" aria-hidden="true"><use href="#i-link"></use></svg> Abhängig von (Vorgänger) <span id="predecessorCount" class="text-[10px] font-normal text-emerald-700/80 dark:text-emerald-400/80"></span></span>
             <button type="button" onclick="clearPredecessorSelection()" class="text-[10px] text-slate-500 dark:text-slate-400 hover:underline">Keine Verknüpfung</button>
           </label>
           <div id="taskPredecessorList" class="max-h-40 overflow-y-auto custom-scroll rounded-lg bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700/60 divide-y divide-slate-100 dark:divide-slate-800 text-xs"></div>
@@ -783,7 +588,7 @@
       <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-950/60 flex-shrink-0">
         <div class="flex items-center gap-2.5">
           <div class="w-8 h-8 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-            <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
+            <svg class="icon text-sm" aria-hidden="true"><use href="#i-wand-sparkles"></use></svg>
           </div>
           <div>
             <h3 class="text-base font-bold text-slate-900 dark:text-white">KI-Schnellimport & Prompt-Vorlage</h3>
@@ -791,7 +596,7 @@
           </div>
         </div>
         <button onclick="closeAiImportModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-          <i class="fa-solid fa-xmark text-base"></i>
+          <svg class="icon text-base" aria-hidden="true"><use href="#i-x"></use></svg>
         </button>
       </div>
 
@@ -800,10 +605,10 @@
         <div class="bg-slate-50 dark:bg-slate-950/70 border border-indigo-200 dark:border-indigo-500/30 rounded-xl p-4 space-y-3">
           <div class="flex items-center justify-between">
             <span class="font-semibold text-indigo-700 dark:text-indigo-300 flex items-center gap-2 text-xs uppercase tracking-wider">
-              <i class="fa-solid fa-terminal text-indigo-500 dark:text-indigo-400"></i> Schritt 1: Prompt für beliebige KI kopieren
+              <svg class="icon text-indigo-500 dark:text-indigo-400" aria-hidden="true"><use href="#i-terminal"></use></svg> Schritt 1: Prompt für beliebige KI kopieren
             </span>
             <button type="button" onclick="copySystemPromptToClipboard()" id="btnCopyPrompt" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs flex items-center gap-1.5 shadow transition active:scale-95">
-              <i class="fa-regular fa-copy"></i>
+              <svg class="icon" aria-hidden="true"><use href="#i-copy"></use></svg>
               <span>Prompt kopieren</span>
             </button>
           </div>
@@ -816,7 +621,7 @@
               <input type="text" id="aiCustomCommandInput" oninput="updateDynamicPromptText()" placeholder="z. B. Klopfer-Zyklus testen nach FG14 Schublade Klopfer programmieren"
                      class="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700/80 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 text-xs outline-none" />
               <button type="button" onclick="clearCustomCommand()" class="px-2.5 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 text-xs transition" title="Feld leeren">
-                <i class="fa-solid fa-rotate-left"></i>
+                <svg class="icon" aria-hidden="true"><use href="#i-rotate-ccw"></use></svg>
               </button>
             </div>
           </div>
@@ -834,7 +639,7 @@
         <div class="space-y-2">
           <div class="flex items-center justify-between">
             <span class="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2 text-xs uppercase tracking-wider">
-              <i class="fa-solid fa-file-code text-emerald-500 dark:text-emerald-400"></i> Schritt 2: JSON-Antwort der KI hier einfügen
+              <svg class="icon text-emerald-500 dark:text-emerald-400" aria-hidden="true"><use href="#i-file-code"></use></svg> Schritt 2: JSON-Antwort der KI hier einfügen
             </span>
             <button type="button" onclick="pasteSampleToInput()" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline underline-offset-2">
               Musterbeispiel einfügen
@@ -863,7 +668,7 @@
           Schließen
         </button>
         <button type="button" onclick="processAiJsonImport()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-md shadow-emerald-600/30 transition text-xs flex items-center gap-1.5 active:scale-95">
-          <i class="fa-solid fa-circle-check"></i>
+          <svg class="icon" aria-hidden="true"><use href="#i-circle-check"></use></svg>
           <span>Einträge ins Board übernehmen</span>
         </button>
       </div>
@@ -872,2433 +677,16 @@
 
   <!-- Notification Toast -->
   <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 dark:bg-slate-800 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-xs sm:text-sm border border-slate-700">
-    <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+    <svg id="toastIcon" class="icon text-emerald-400" aria-hidden="true"><use href="#i-circle-check"></use></svg>
     <span id="toastMessage">Aktion erfolgreich</span>
   </div>
 
-  <script>
-    // Theme Management (Light / Dark)
-    const THEME_STORAGE_KEY = 'project_board_theme';
-
-    function initTheme() {
-      const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-      const isDark = savedTheme !== null ? savedTheme === 'dark' : false;
-      applyTheme(isDark);
-    }
-
-    function applyTheme(isDark) {
-      const html = document.documentElement;
-      const themeIcon = document.getElementById('themeToggleIcon');
-      const themeLabel = document.getElementById('themeToggleLabel');
-
-      if (isDark) {
-        html.classList.add('dark');
-        localStorage.setItem(THEME_STORAGE_KEY, 'dark');
-        if (themeIcon) themeIcon.className = 'fa-solid fa-sun text-amber-400 text-sm';
-        if (themeLabel) themeLabel.innerText = 'Hell';
-      } else {
-        html.classList.remove('dark');
-        localStorage.setItem(THEME_STORAGE_KEY, 'light');
-        if (themeIcon) themeIcon.className = 'fa-solid fa-moon text-indigo-500 text-sm';
-        if (themeLabel) themeLabel.innerText = 'Dunkel';
-      }
-
-      if (tasks && tasks.length > 0) {
-        render();
-      }
-    }
-
-    function toggleTheme() {
-      const isDark = document.documentElement.classList.contains('dark');
-      applyTheme(!isDark);
-      showToast(!isDark ? 'Dunkelmodus aktiviert' : 'Hellmodus aktiviert');
-    }
-
-    // Dynamic project workspace & storage key resolution based on pathname
-    function detectProjectWorkspace() {
-      let rawPath = window.location.pathname || '';
-      rawPath = rawPath.replace(/\\/g, '/');
-      const segments = rawPath.split('/').filter(Boolean);
-      let filename = segments.length > 0 ? segments[segments.length - 1] : '';
-
-      filename = filename.split('?')[0].split('#')[0];
-
-      let projectName = 'Projekt';
-      if (filename && filename.toLowerCase().endsWith('.html')) {
-        projectName = filename.substring(0, filename.length - 5);
-      } else if (filename) {
-        projectName = filename;
-      }
-
-      projectName = decodeURIComponent(projectName).trim();
-      if (!projectName || projectName.toLowerCase() === 'index') {
-        projectName = 'Hauptprojekt';
-      }
-
-      const storageKey = `project_board_data_${projectName}`;
-      return { projectName, filename: filename || 'lokale Datei', storageKey };
-    }
-
-    const currentWorkspace = detectProjectWorkspace();
-    const STORAGE_KEY = currentWorkspace.storageKey;
-
-    // Helper dates relative to today
-    const now = new Date();
-    const toISO = (d) => d.toISOString().split('T')[0];
-    const addDays = (days) => {
-      const d = new Date(now);
-      d.setDate(d.getDate() + days);
-      return toISO(d);
-    };
-
-    // Automation & Engineering Tasks
-    const DEFAULT_TASKS = [
-      {
-        id: 't-1',
-        title: 'Werkstückstatus aus HMI an PLC übertragen',
-        group: 'HMI ↔ PLC Kommunikation',
-        phase: 'Schnittstellen',
-        priority: 'Hoch',
-        status: 'Offen',
-        progress: 0,
-        startDate: addDays(0),
-        endDate: addDays(5),
-        dependsOn: [],
-        nextAction: 'DB-Struktur in TIA Portal anlegen',
-        notes: 'Handshake-Bits für Werkstückfreigabe definieren.'
-      },
-      {
-        id: 't-2',
-        title: 'Kontrollbild nach Türschließung im Relais',
-        group: 'Maschinentests',
-        phase: 'Inbetriebnahme',
-        priority: 'Mittel',
-        status: 'Offen',
-        progress: 0,
-        startDate: addDays(0),
-        endDate: addDays(4),
-        dependsOn: [],
-        nextAction: 'Sicherheitskreis-Verriegelung prüfen',
-        notes: 'Visuelle Rückmeldung am HMI-Panel verifizieren.'
-      },
-      {
-        id: 't-3',
-        title: 'FG14 Schublade Klopfer programmieren',
-        group: 'FG14 Klopfer',
-        phase: 'Umsetzung',
-        priority: 'Hoch',
-        status: 'In Arbeit',
-        progress: 40,
-        startDate: addDays(0),
-        endDate: addDays(4),
-        dependsOn: [],
-        nextAction: 'Zylinder-Ansteuerung und Taktsignale einprogrammieren',
-        notes: 'Voraussetzung für den anschließenden Klopfer-Zyklustest.'
-      },
-      {
-        id: 't-4',
-        title: 'Klopfer-Zyklus testen',
-        group: 'FG14 Klopfer',
-        phase: 'Inbetriebnahme',
-        priority: 'Hoch',
-        status: 'Offen',
-        progress: 0,
-        startDate: addDays(5),
-        endDate: addDays(9),
-        dependsOn: ['t-3'],
-        nextAction: 'Sensorabfragen und Zylinderhub im Tippbetrieb prüfen',
-        notes: 'Darf erst starten, wenn die Klopfer-Programmierung abgeschlossen ist.'
-      },
-      {
-        id: 't-5',
-        title: 'Umrüstprozess fertig programmieren',
-        group: 'Umrüstung',
-        phase: 'Umsetzung',
-        priority: 'Mittel',
-        status: 'In Arbeit',
-        progress: 70,
-        startDate: addDays(-2),
-        endDate: addDays(3),
-        dependsOn: [],
-        nextAction: 'Rezepturverwaltung für Werkzeugwechsel abschließen',
-        notes: 'Bereits zu 70% parametriert.'
-      },
-      {
-        id: 't-6',
-        title: 'Umrüstprozess testen',
-        group: 'Umrüstung',
-        phase: 'Inbetriebnahme',
-        priority: 'Mittel',
-        status: 'Offen',
-        progress: 0,
-        startDate: addDays(4),
-        endDate: addDays(7),
-        dependsOn: ['t-5'],
-        nextAction: 'Werkzeugwechsel mit Musterteilen durchspielen',
-        notes: 'Hängt direkt an der Umrüstprogrammierung.'
-      },
-      {
-        id: 't-7',
-        title: 'Leerfahrt der Maschine testen',
-        group: 'Maschinentests',
-        phase: 'Inbetriebnahme',
-        priority: 'Niedrig',
-        status: 'Offen',
-        progress: 0,
-        startDate: addDays(0),
-        endDate: addDays(3),
-        dependsOn: [],
-        nextAction: 'Not-Aus Kreise und Achsendschalter abfahren',
-        notes: 'Grundlegende Maschinenbewegung sicherstellen.'
-      },
-      {
-        id: 't-8',
-        title: 'Reset-Funktion testen',
-        group: 'Maschinentests',
-        phase: 'Inbetriebnahme',
-        priority: 'Mittel',
-        status: 'Offen',
-        progress: 0,
-        startDate: addDays(10),
-        endDate: addDays(13),
-        dependsOn: ['t-7', 't-4'],
-        nextAction: 'Schrittketten-Reset bei laufendem Zyklus simulieren',
-        notes: 'Erst nach Leerfahrt und Klopfer-Zyklustest. Sicherstellen, dass keine Zylinder in Zwischenstellung verharren.'
-      }
-    ];
-
-    let tasks = [];
-    let currentView = 'gantt'; // Starts directly in Gantt 2D view
-    let sortColumn = null;
-    let sortAsc = true;
-    let draggedTaskId = null;
-    let draggedLeftTaskId = null;
-    // Zoom = Pixel pro Tag (stufenlos). Klein = mehr Zeitraum sichtbar, groß = mehr Details.
-    const ZOOM_PRESETS = { day: 64, week: 42, month: 20, quarter: 9, year: 3 };
-    const ZOOM_MIN = 2;
-    const ZOOM_MAX = 140;
-    const ZOOM_KEY = `${STORAGE_KEY}_zoom`;
-    let ganttDayWidth = ZOOM_PRESETS.week;
-    let ganttMinDate = null;
-
-    // Grouping State
-    const NO_GROUP = 'Ohne Gruppe';
-    const NO_PHASE = 'Ohne Phase';
-    const PHASE_ORDER = ['Konzept', 'Vorbereitung', 'Umsetzung', 'Schnittstellen', 'Inbetriebnahme', 'Doku'];
-    const STATUS_ORDER = ['Offen', 'In Arbeit', 'Im Testen', 'Blockiert', 'Erledigt', 'Abgebrochen'];
-    const STATUS_COLORS = { 'Offen': '#64748b', 'In Arbeit': '#3b82f6', 'Im Testen': '#8b5cf6', 'Blockiert': '#f43f5e', 'Erledigt': '#10b981', 'Abgebrochen': '#94a3b8' };
-
-    // Abgeschlossen = blockiert keine Nachfolger mehr
-    function isClosed(t) {
-      return t.status === 'Erledigt' || t.status === 'Abgebrochen';
-    }
-
-    function getStatusOptions(selected) {
-      return STATUS_ORDER.map(st => `<option value="${st}" ${st === selected ? 'selected' : ''}>${st}</option>`).join('');
-    }
-    const GROUP_COLORS = ['#6366f1', '#f59e0b', '#06b6d4', '#d946ef', '#84cc16', '#f97316', '#0ea5e9', '#8b5cf6', '#14b8a6', '#ec4899'];
-    const GROUPBY_KEY = `${STORAGE_KEY}_groupby`;
-    const COLLAPSED_KEY = `${STORAGE_KEY}_collapsed`;
-    let groupBy = 'group';
-    let collapsedGroups = new Set();
-
-    // Gantt Layout
-    const ROW_H = 56;
-    const GROUP_H = 40;
-
-    // Interactive Dependency Linking State (2D)
-    let linkingPredecessorId = null;
-    let linkingStartCoords = null;
-    let cachedBarPositions = {};
-    let cachedGroupPositions = {};
-
-    // -------------------------------------------------------------
-    // GENERAL APP & TASK LOGIC
-    // -------------------------------------------------------------
-    function initWorkspaceUI() {
-      const headerTitle = document.getElementById('projectHeaderTitle');
-      const badgeName = document.getElementById('workspaceBadgeName');
-      const storageHint = document.getElementById('storageKeyHint');
-      const dropdownTitle = document.getElementById('dropdownWorkspaceTitle');
-
-      if (headerTitle) headerTitle.innerText = `Projekt: ${currentWorkspace.projectName}`;
-      if (badgeName) badgeName.innerText = currentWorkspace.filename;
-      if (storageHint) storageHint.innerText = `Key: ${currentWorkspace.storageKey}`;
-      if (dropdownTitle) dropdownTitle.innerText = `Workspace: ${currentWorkspace.projectName}`;
-      document.title = `${currentWorkspace.projectName} - Board & Gantt (2D & 3D)`;
-    }
-
-    // Abhängigkeiten werden als Array von Vorgänger-IDs gespeichert.
-    // Ältere Daten (ein einzelner String) werden beim Laden konvertiert.
-    function normalizeDeps(val) {
-      if (Array.isArray(val)) return [...new Set(val.map(v => String(v).trim()).filter(Boolean))];
-      if (!val) return [];
-      return [...new Set(String(val).split(',').map(v => v.trim()).filter(Boolean))];
-    }
-
-    function normalizeTask(t) {
-      return {
-        ...t,
-        group: (t.group || t.gruppe || '').trim(),
-        startDate: t.startDate || t.deadline || toISO(new Date()),
-        endDate: t.endDate || t.deadline || addDays(5),
-        dependsOn: normalizeDeps(t.dependsOn || t.depends_on),
-        progress: typeof t.progress === 'number' ? t.progress : (t.status === 'Erledigt' ? 100 : 0)
-      };
-    }
-
-    function dropDanglingDeps() {
-      const ids = new Set(tasks.map(t => t.id));
-      tasks.forEach(t => { t.dependsOn = t.dependsOn.filter(id => ids.has(id) && id !== t.id); });
-    }
-
-    function loadTasks() {
-      initTheme();
-      initWorkspaceUI();
-      try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          tasks = JSON.parse(stored).map(normalizeTask);
-          dropDanglingDeps();
-        } else {
-          tasks = DEFAULT_TASKS.map(normalizeTask);
-          saveTasks();
-        }
-      } catch (e) {
-        console.error('Fehler beim Laden:', e);
-        tasks = DEFAULT_TASKS.map(normalizeTask);
-      }
-
-      try {
-        groupBy = localStorage.getItem(GROUPBY_KEY) || 'group';
-        collapsedGroups = new Set(JSON.parse(localStorage.getItem(COLLAPSED_KEY) || '[]'));
-      } catch (e) {
-        groupBy = 'group';
-        collapsedGroups = new Set();
-      }
-      document.getElementById('groupBySelect').value = groupBy;
-
-      initGanttScrollSync();
-      initGanttZoom();
-      switchView('gantt');
-    }
-
-    function saveViewState() {
-      try {
-        localStorage.setItem(GROUPBY_KEY, groupBy);
-        localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsedGroups]));
-      } catch (e) {}
-    }
-
-    // Linke Aufgabenliste und Timeline vertikal synchron scrollen
-    function initGanttScrollSync() {
-      const left = document.getElementById('ganttLabelScroll');
-      const right = document.getElementById('ganttTimelineWrapper');
-      let lock = null;
-      const sync = (src, dst) => () => {
-        if (lock && lock !== src) return;
-        lock = src;
-        dst.scrollTop = src.scrollTop;
-        requestAnimationFrame(() => { lock = null; });
-      };
-      left.addEventListener('scroll', sync(left, right));
-      right.addEventListener('scroll', sync(right, left));
-    }
-
-    // -------------------------------------------------------------
-    // GROUPING
-    // -------------------------------------------------------------
-    function getGroupKey(t, mode = groupBy) {
-      if (mode === 'phase') return t.phase || NO_PHASE;
-      if (mode === 'status') return t.status || 'Offen';
-      if (mode === 'group') return t.group || NO_GROUP;
-      return null;
-    }
-
-    function getAllGroupNames() {
-      const names = [];
-      tasks.forEach(t => { if (t.group && !names.includes(t.group)) names.push(t.group); });
-      return names;
-    }
-
-    // Liefert [{ key, tasks }] in stabiler Reihenfolge
-    function buildGroups(list, mode = groupBy) {
-      if (mode === 'none') return [{ key: null, tasks: list }];
-      const map = new Map();
-      let order;
-      if (mode === 'phase') order = PHASE_ORDER;
-      else if (mode === 'status') order = STATUS_ORDER;
-      else order = [...getAllGroupNames(), NO_GROUP];
-      order.forEach(k => map.set(k, []));
-      list.forEach(t => {
-        const k = getGroupKey(t, mode);
-        if (!map.has(k)) map.set(k, []);
-        map.get(k).push(t);
-      });
-      return [...map.entries()].filter(([, ts]) => ts.length > 0).map(([key, ts]) => ({ key, tasks: ts }));
-    }
-
-    function getGroupColor(key) {
-      if (groupBy === 'status') {
-        return STATUS_COLORS[key] || '#64748b';
-      }
-      if (!key || key === NO_GROUP) return '#94a3b8';
-      let h = 0;
-      for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
-      return GROUP_COLORS[h % GROUP_COLORS.length];
-    }
-
-    function collapseId(key) {
-      return `${groupBy}:${key}`;
-    }
-
-    function isGroupCollapsed(key) {
-      return key !== null && collapsedGroups.has(collapseId(key));
-    }
-
-    function toggleGroup(key, e) {
-      if (e) e.stopPropagation();
-      const id = collapseId(key);
-      if (collapsedGroups.has(id)) collapsedGroups.delete(id); else collapsedGroups.add(id);
-      saveViewState();
-      render();
-    }
-
-    function toggleAllGroups() {
-      const keys = buildGroups(getFilteredTasks()).map(g => g.key).filter(k => k !== null);
-      const allCollapsed = keys.length > 0 && keys.every(k => isGroupCollapsed(k));
-      keys.forEach(k => {
-        if (allCollapsed) collapsedGroups.delete(collapseId(k)); else collapsedGroups.add(collapseId(k));
-      });
-      saveViewState();
-      render();
-    }
-
-    function setGroupBy(mode) {
-      groupBy = mode;
-      saveViewState();
-      render();
-    }
-
-    function renameGroup(oldName, e) {
-      if (e) e.stopPropagation();
-      if (oldName === NO_GROUP) return;
-      const newName = (prompt(`Gruppe "${oldName}" umbenennen:`, oldName) || '').trim();
-      if (!newName || newName === oldName) return;
-      tasks.forEach(t => { if (t.group === oldName) t.group = newName; });
-      if (collapsedGroups.delete(`group:${oldName}`)) collapsedGroups.add(`group:${newName}`);
-      saveTasks();
-      saveViewState();
-      render();
-      showToast(`Gruppe umbenannt: "${oldName}" ➔ "${newName}"`);
-    }
-
-    function addTaskToGroup(key, e) {
-      if (e) e.stopPropagation();
-      openTaskModal(false);
-      if (groupBy === 'group') document.getElementById('taskGroup').value = key === NO_GROUP ? '' : key;
-      if (groupBy === 'phase') document.getElementById('taskPhase').value = key === NO_PHASE ? '' : key;
-      if (groupBy === 'status') {
-        document.getElementById('taskStatus').value = key;
-        syncStatusProgress();
-      }
-    }
-
-    // Setzt das Feld, nach dem gerade gruppiert wird (Gruppe / Phase / Status)
-    function assignTaskToGroup(task, key) {
-      if (groupBy === 'group') task.group = key === NO_GROUP ? '' : key;
-      else if (groupBy === 'phase') task.phase = key === NO_PHASE ? '' : key;
-      else if (groupBy === 'status') {
-        task.status = key;
-        if (key === 'Erledigt') task.progress = 100;
-        if (key === 'Offen' && task.progress === 100) task.progress = 0;
-      }
-    }
-
-    function populateGroupControls() {
-      const names = getAllGroupNames();
-      const datalist = document.getElementById('groupOptions');
-      datalist.innerHTML = names.map(n => `<option value="${escapeHTML(n)}"></option>`).join('');
-      const owners = [...new Set(tasks.map(t => t.owner).filter(Boolean))];
-      document.getElementById('ownerOptions').innerHTML = owners.map(n => `<option value="${escapeHTML(n)}"></option>`).join('');
-
-      const filter = document.getElementById('filterGroup');
-      const current = filter.value;
-      filter.innerHTML = '<option value="ALL">Alle Gruppen</option>' +
-        names.map(n => `<option value="${escapeHTML(n)}">${escapeHTML(n)}</option>`).join('') +
-        (tasks.some(t => !t.group) ? `<option value="${NO_GROUP}">${NO_GROUP}</option>` : '');
-      filter.value = [...filter.options].some(o => o.value === current) ? current : 'ALL';
-
-      // Phasen aus importierten Daten (z. B. "Fertigstellen") in Filter und Formular ergänzen
-      const extraPhases = [...new Set(tasks.map(t => t.phase).filter(ph => ph && !PHASE_ORDER.includes(ph)))];
-      const phaseFilter = document.getElementById('filterPhase');
-      const phaseSelect = document.getElementById('taskPhase');
-      const currentPhase = phaseFilter.value;
-      phaseFilter.querySelectorAll('[data-dynamic]').forEach(o => o.remove());
-      phaseSelect.querySelectorAll('[data-dynamic]').forEach(o => o.remove());
-      [...extraPhases, ...(tasks.some(t => !t.phase) ? [NO_PHASE] : [])].forEach(ph => {
-        phaseFilter.insertAdjacentHTML('beforeend', `<option data-dynamic value="${escapeHTML(ph)}">${escapeHTML(ph)}</option>`);
-      });
-      extraPhases.forEach(ph => {
-        phaseSelect.insertAdjacentHTML('beforeend', `<option data-dynamic value="${escapeHTML(ph)}">${escapeHTML(ph)}</option>`);
-      });
-      phaseFilter.value = [...phaseFilter.options].some(o => o.value === currentPhase) ? currentPhase : 'ALL';
-    }
-
-    function saveTasks() {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-      } catch (e) {
-        showToast('Speicherfehler im Browser', 'error');
-      }
-    }
-
-    function showToast(msg, type = 'success') {
-      const toast = document.getElementById('toast');
-      const toastMsg = document.getElementById('toastMessage');
-      const toastIcon = document.getElementById('toastIcon');
-
-      toastMsg.innerText = msg;
-      if (type === 'error') {
-        toastIcon.className = 'fa-solid fa-circle-exclamation text-rose-400';
-      } else {
-        toastIcon.className = 'fa-solid fa-circle-check text-emerald-400';
-      }
-
-      toast.classList.remove('translate-y-20', 'opacity-0');
-      setTimeout(() => {
-        toast.classList.add('translate-y-20', 'opacity-0');
-      }, 2600);
-    }
-
-    function getFilteredTasks() {
-      const query = document.getElementById('filterSearch').value.toLowerCase().trim();
-      const phase = document.getElementById('filterPhase').value;
-      const priority = document.getElementById('filterPriority').value;
-      const status = document.getElementById('filterStatus').value;
-      const group = document.getElementById('filterGroup').value;
-
-      return tasks.filter(t => {
-        const matchesQuery = !query ||
-          t.title.toLowerCase().includes(query) ||
-          (t.group && t.group.toLowerCase().includes(query)) ||
-          (t.owner && t.owner.toLowerCase().includes(query)) ||
-          (t.notes && t.notes.toLowerCase().includes(query)) ||
-          (t.nextAction && t.nextAction.toLowerCase().includes(query));
-        const matchesPhase = phase === 'ALL' || (t.phase || NO_PHASE) === phase;
-        const matchesPriority = priority === 'ALL' || t.priority === priority;
-        const matchesStatus = status === 'ALL' || t.status === status;
-        const matchesGroup = group === 'ALL' || (t.group || NO_GROUP) === group;
-
-        return matchesQuery && matchesPhase && matchesPriority && matchesStatus && matchesGroup;
-      });
-    }
-
-    function applyFilters() {
-      render();
-    }
-
-    function resetFilters() {
-      document.getElementById('filterSearch').value = '';
-      document.getElementById('filterPhase').value = 'ALL';
-      document.getElementById('filterPriority').value = 'ALL';
-      document.getElementById('filterStatus').value = 'ALL';
-      document.getElementById('filterGroup').value = 'ALL';
-      render();
-    }
-
-    function updateMetrics() {
-      const total = tasks.length;
-      const inProgress = tasks.filter(t => t.status === 'In Arbeit').length;
-      const blocked = tasks.filter(t => t.status === 'Blockiert').length;
-      const done = tasks.filter(t => t.status === 'Erledigt').length;
-      const highOpen = tasks.filter(t => t.priority === 'Hoch' && !isClosed(t)).length;
-
-      const avgProgress = total === 0 ? 0 : Math.round(tasks.reduce((acc, t) => acc + (t.progress || 0), 0) / total);
-
-      document.getElementById('statTotal').innerText = total;
-      document.getElementById('statInProgress').innerText = inProgress;
-      document.getElementById('statBlocked').innerText = blocked;
-      document.getElementById('statDone').innerText = done;
-
-      document.getElementById('statPercentText').innerText = `${avgProgress}%`;
-      document.getElementById('statProgressBar').style.width = `${avgProgress}%`;
-      document.getElementById('statProgressRatio').innerText = `${done} von ${total} fertig`;
-      document.getElementById('statHighPriorityOpen').innerText = `${highOpen} Prio-Hoch offen`;
-    }
-
-    function getPriorityBadge(prio) {
-      if (prio === 'Hoch') {
-        return `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1 w-max"><i class="fa-solid fa-angles-up text-[10px]"></i> Hoch</span>`;
-      } else if (prio === 'Mittel') {
-        return `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1 w-max"><i class="fa-solid fa-angle-up text-[10px]"></i> Mittel</span>`;
-      }
-      return `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-200 dark:bg-slate-700/40 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600/40 flex items-center gap-1 w-max"><i class="fa-solid fa-minus text-[10px]"></i> Niedrig</span>`;
-    }
-
-    function getGroupBadge(group) {
-      const color = getGroupColor(group);
-      return `<span class="px-2 py-0.5 rounded-lg text-[10px] font-semibold border flex items-center gap-1 w-max" style="color:${color}; border-color:${color}66; background:${color}14;"><i class="fa-solid fa-object-group text-[9px]"></i>${escapeHTML(group)}</span>`;
-    }
-
-    // Vorgänger-Chip mit Zustand der Abhängigkeit (freigegeben / wartet / Konflikt)
-    function getDependencyChip(pred, task, removable = false) {
-      const state = getDependencyState(pred, task);
-      const cls = {
-        done: 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/25',
-        wait: 'text-indigo-700 dark:text-indigo-300 bg-indigo-500/10 border-indigo-500/25',
-        conflict: 'text-rose-700 dark:text-rose-300 bg-rose-500/10 border-rose-500/30'
-      }[state];
-      const icon = { done: 'fa-circle-check', wait: 'fa-hourglass-half', conflict: 'fa-triangle-exclamation' }[state];
-      const prefix = { done: 'Freigegeben nach', wait: 'Wartet auf', conflict: 'Konflikt mit' }[state];
-      return `
-        <div class="text-[10px] ${cls} border px-2 py-0.5 rounded-md flex items-center gap-1.5 max-w-full" title="${prefix}: ${escapeHTML(pred.title)} (Ende ${formatDate(pred.endDate)})">
-          <i class="fa-solid ${icon} text-[9px] flex-shrink-0"></i>
-          <span class="truncate">${prefix}: ${escapeHTML(pred.title)}</span>
-          ${removable ? `<button onclick="removeDependency('${task.id}', '${pred.id}', event)" class="ml-auto hover:text-rose-500 p-0.5 opacity-60 hover:opacity-100" title="Verknüpfung aufheben"><i class="fa-solid fa-xmark text-[9px]"></i></button>` : ''}
-        </div>`;
-    }
-
-    function getPhaseBadge(phase) {
-      if (!phase) return '';
-      return `<span class="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80">${escapeHTML(phase || 'Konzept')}</span>`;
-    }
-
-    function escapeHTML(str) {
-      if (!str) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    }
-
-    function formatDate(dateStr) {
-      if (!dateStr) return '<span class="text-slate-400 dark:text-slate-600">-</span>';
-      try {
-        const parts = dateStr.split('-');
-        if (parts.length === 3) {
-          return `${parts[2]}.${parts[1]}.${parts[0]}`;
-        }
-      } catch (e) {}
-      return dateStr;
-    }
-
-    // -------------------------------------------------------------
-    // DEPENDENCIES (Ende -> Anfang, mehrere Vorgänger je Aufgabe)
-    // -------------------------------------------------------------
-    function getTask(id) {
-      return tasks.find(t => t.id === id);
-    }
-
-    function getPredecessors(task) {
-      return (task.dependsOn || []).map(getTask).filter(Boolean);
-    }
-
-    function getSuccessors(taskId) {
-      return tasks.filter(t => (t.dependsOn || []).includes(taskId));
-    }
-
-    function getAncestors(taskId, acc = new Set()) {
-      const t = getTask(taskId);
-      (t ? t.dependsOn : []).forEach(pid => {
-        if (!acc.has(pid)) {
-          acc.add(pid);
-          getAncestors(pid, acc);
-        }
-      });
-      return acc;
-    }
-
-    function getDescendants(taskId, acc = new Set()) {
-      getSuccessors(taskId).forEach(s => {
-        if (!acc.has(s.id)) {
-          acc.add(s.id);
-          getDescendants(s.id, acc);
-        }
-      });
-      return acc;
-    }
-
-    // 'done'     = Vorgänger erledigt, Nachfolger freigegeben
-    // 'conflict' = Nachfolger beginnt, bevor der Vorgänger endet
-    // 'wait'     = Vorgänger läuft noch, Termine passen
-    function getDependencyState(pred, succ) {
-      if (isClosed(pred)) return 'done';
-      if (new Date(succ.startDate) <= new Date(pred.endDate)) return 'conflict';
-      return 'wait';
-    }
-
-    function getConflictCount() {
-      let n = 0;
-      tasks.forEach(t => getPredecessors(t).forEach(p => { if (getDependencyState(p, t) === 'conflict') n++; }));
-      return n;
-    }
-
-    // Frühester Start = Tag nach dem spätesten Ende aller Vorgänger
-    function getEarliestStart(task) {
-      let min = null;
-      getPredecessors(task).forEach(p => {
-        const d = new Date(p.endDate);
-        d.setHours(0, 0, 0, 0);
-        d.setDate(d.getDate() + 1);
-        if (!min || d > min) min = d;
-      });
-      return min;
-    }
-
-    // Verschiebt die Aufgabe hinter ihre Vorgänger (Dauer bleibt erhalten). true, wenn verschoben.
-    function shiftAfterPredecessors(task) {
-      const minStart = getEarliestStart(task);
-      if (!minStart) return false;
-      const currStart = new Date(task.startDate);
-      currStart.setHours(0, 0, 0, 0);
-      if (currStart >= minStart) return false;
-      const currEnd = new Date(task.endDate);
-      const durationDays = Math.max(0, Math.round((currEnd - currStart) / (1000 * 60 * 60 * 24)));
-      task.startDate = toISO(minStart);
-      const newEnd = new Date(minStart);
-      newEnd.setDate(newEnd.getDate() + durationDays);
-      task.endDate = toISO(newEnd);
-      return true;
-    }
-
-    // Cascade date shifts to all (transitive) successors
-    function cascadeDependentTasks(predecessorId, path = new Set()) {
-      if (path.has(predecessorId)) return;
-      path.add(predecessorId);
-      getSuccessors(predecessorId).forEach(task => {
-        if (shiftAfterPredecessors(task)) cascadeDependentTasks(task.id, path);
-      });
-      path.delete(predecessorId);
-    }
-
-    function resolveAllConflicts() {
-      const before = getConflictCount();
-      tasks.forEach(t => {
-        shiftAfterPredecessors(t);
-        cascadeDependentTasks(t.id);
-      });
-      saveTasks();
-      render();
-      showToast(`${before} Abhängigkeitskonflikt(e) aufgelöst – Nachfolger wurden verschoben.`);
-    }
-
-    // Würde "targetId hängt von sourceId ab" einen Kreis erzeugen?
-    function wouldCauseCircularDependency(sourceId, targetId) {
-      if (sourceId === targetId) return true;
-      return getAncestors(sourceId).has(targetId);
-    }
-
-    // 2D Dependency Linking
-    function startDependencyLinking(sourceTaskId, e) {
-      if (e) {
-        e.stopPropagation();
-        e.preventDefault();
-      }
-      const sourceTask = tasks.find(t => t.id === sourceTaskId);
-      if (!sourceTask) return;
-
-      linkingPredecessorId = sourceTaskId;
-      document.body.classList.add('is-linking-dependency');
-
-      const banner = document.getElementById('dependencyLinkingBanner');
-      const nameSpan = document.getElementById('linkingSourceTaskName');
-      nameSpan.innerText = `"${sourceTask.title}"`;
-      banner.classList.remove('hidden');
-
-      if (cachedBarPositions[sourceTaskId]) {
-        linkingStartCoords = {
-          x: cachedBarPositions[sourceTaskId].endX + 6,
-          y: cachedBarPositions[sourceTaskId].centerY
-        };
-      }
-
-      showToast(`Verknüpfungsmodus aktiv: Wähle die Nachfolge-Aufgabe aus.`);
-      render();
-    }
-
-    function cancelDependencyLinking() {
-      linkingPredecessorId = null;
-      linkingStartCoords = null;
-      document.body.classList.remove('is-linking-dependency');
-      document.getElementById('dependencyLinkingBanner').classList.add('hidden');
-      const liveLine = document.getElementById('svgLiveLinkLine');
-      if (liveLine) liveLine.classList.add('hidden');
-      render();
-    }
-
-    window.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape' && linkingPredecessorId) {
-        cancelDependencyLinking();
-      }
-    });
-
-    document.addEventListener('mousemove', function(e) {
-      if (!linkingPredecessorId || !linkingStartCoords) return;
-      const timelineWrapper = document.getElementById('ganttTimelineWrapper');
-      const svg = document.getElementById('ganttDependencySvg');
-      const liveLine = document.getElementById('svgLiveLinkLine');
-      if (!timelineWrapper || !svg || !liveLine) return;
-
-      const rect = svg.getBoundingClientRect();
-      const currentX = e.clientX - rect.left;
-      const currentY = e.clientY - rect.top;
-
-      const startX = linkingStartCoords.x;
-      const startY = linkingStartCoords.y;
-      const deltaX = Math.max(25, (currentX - startX) / 2);
-
-      liveLine.setAttribute('d', `M ${startX} ${startY} C ${startX + deltaX} ${startY}, ${currentX - deltaX} ${currentY}, ${currentX} ${currentY}`);
-      liveLine.classList.remove('hidden');
-    });
-
-    function handleTaskClickInGantt(targetTaskId, e) {
-      if (e) e.stopPropagation();
-
-      if (!linkingPredecessorId) {
-        editTask(targetTaskId);
-        return;
-      }
-
-      if (linkingPredecessorId === targetTaskId) {
-        showToast('Eine Aufgabe kann nicht von sich selbst abhängen!', 'error');
-        return;
-      }
-
-      if (wouldCauseCircularDependency(linkingPredecessorId, targetTaskId)) {
-        showToast('Zirkuläre Abhängigkeit nicht erlaubt!', 'error');
-        cancelDependencyLinking();
-        return;
-      }
-
-      const targetTask = tasks.find(t => t.id === targetTaskId);
-      const sourceTask = tasks.find(t => t.id === linkingPredecessorId);
-
-      if (targetTask && sourceTask) {
-        if (targetTask.dependsOn.includes(linkingPredecessorId)) {
-          showToast(`"${targetTask.title}" hängt bereits von "${sourceTask.title}" ab.`, 'error');
-        } else {
-          targetTask.dependsOn.push(linkingPredecessorId);
-          const shifted = shiftAfterPredecessors(targetTask);
-          cascadeDependentTasks(targetTask.id);
-          saveTasks();
-          showToast(`Abhängigkeit verknüpft: "${sourceTask.title}" ➔ "${targetTask.title}"${shifted ? ' (Termin verschoben)' : ''}`);
-        }
-      }
-
-      cancelDependencyLinking();
-    }
-
-    // Ohne predId werden alle Vorgänger der Aufgabe gelöst
-    function removeDependency(taskId, predId, e) {
-      if (e) {
-        e.stopPropagation();
-        e.preventDefault();
-      }
-      const t = getTask(taskId);
-      if (!t) return;
-      const removed = predId ? [predId] : [...t.dependsOn];
-      t.dependsOn = predId ? t.dependsOn.filter(id => id !== predId) : [];
-      saveTasks();
-      render();
-      const names = removed.map(id => (getTask(id) || {}).title || 'Vorgänger').join('", "');
-      showToast(`Abhängigkeit gelöst: "${t.title}" hängt nicht mehr von "${names}" ab.`);
-    }
-
-    function confirmRemoveDependency(taskId, predId, e) {
-      if (e) e.stopPropagation();
-      const t = getTask(taskId);
-      const p = getTask(predId);
-      if (!t || !p) return;
-      if (confirm(`Abhängigkeit lösen?\n\n"${p.title}"  ➔  "${t.title}"`)) {
-        removeDependency(taskId, predId);
-      }
-    }
-
-    // Hover: komplette Abhängigkeitskette (Vorgänger + Nachfolger) hervorheben
-    function highlightDependencyChain(taskId) {
-      if (linkingPredecessorId) return;
-      const view = document.getElementById('ganttView');
-      const related = new Set([taskId, ...getAncestors(taskId), ...getDescendants(taskId)]);
-      if (related.size === 1) return;
-      view.classList.add('dep-focus');
-      view.querySelectorAll('[data-task-id]').forEach(el => {
-        el.classList.toggle('dep-related', related.has(el.dataset.taskId));
-      });
-      view.querySelectorAll('[data-group-tasks]').forEach(el => {
-        el.classList.toggle('dep-related', el.dataset.groupTasks.split(',').some(id => related.has(id)));
-      });
-      view.querySelectorAll('.dep-edge').forEach(el => {
-        el.classList.toggle('dep-related', related.has(el.dataset.from) && related.has(el.dataset.to));
-      });
-    }
-
-    function clearDependencyHighlight() {
-      const view = document.getElementById('ganttView');
-      view.classList.remove('dep-focus');
-      view.querySelectorAll('.dep-related').forEach(el => el.classList.remove('dep-related'));
-    }
-
-    // Left sidebar drag and drop: sortieren und in andere Gruppe verschieben
-    function handleLeftRowDragStart(e, taskId) {
-      draggedLeftTaskId = taskId;
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', taskId);
-      e.currentTarget.classList.add('dragging');
-      clearDependencyHighlight();
-    }
-
-    function handleLeftRowDragOver(e) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      const row = e.currentTarget;
-      const rect = row.getBoundingClientRect();
-      const mid = rect.top + rect.height / 2;
-
-      row.classList.remove('drag-over-top', 'drag-over-bottom');
-      if (e.clientY < mid) {
-        row.classList.add('drag-over-top');
-      } else {
-        row.classList.add('drag-over-bottom');
-      }
-    }
-
-    function handleLeftRowDragLeave(e) {
-      e.currentTarget.classList.remove('drag-over-top', 'drag-over-bottom');
-    }
-
-    function handleLeftRowDrop(e, targetTaskId) {
-      e.preventDefault();
-      const row = e.currentTarget;
-      const insertAfter = e.clientY >= row.getBoundingClientRect().top + row.getBoundingClientRect().height / 2;
-      row.classList.remove('drag-over-top', 'drag-over-bottom');
-
-      const sourceId = draggedLeftTaskId;
-      draggedLeftTaskId = null;
-      if (!sourceId || sourceId === targetTaskId) return;
-
-      const globalSourceIndex = tasks.findIndex(t => t.id === sourceId);
-      if (globalSourceIndex === -1 || !getTask(targetTaskId)) return;
-
-      const [movedItem] = tasks.splice(globalSourceIndex, 1);
-      const targetTask = getTask(targetTaskId);
-      const globalTargetIndex = tasks.indexOf(targetTask);
-      tasks.splice(globalTargetIndex + (insertAfter ? 1 : 0), 0, movedItem);
-
-      const targetKey = getGroupKey(targetTask);
-      const movedGroup = groupBy !== 'none' && getGroupKey(movedItem) !== targetKey;
-      if (movedGroup) assignTaskToGroup(movedItem, targetKey);
-
-      saveTasks();
-      render();
-      showToast(movedGroup ? `"${movedItem.title}" ➔ Gruppe "${targetKey}"` : `Aufgabe "${movedItem.title}" verschoben`);
-    }
-
-    function handleGroupDragOver(e) {
-      if (!draggedLeftTaskId) return;
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      e.currentTarget.classList.add('drag-over-group');
-    }
-
-    function handleGroupDragLeave(e) {
-      e.currentTarget.classList.remove('drag-over-group');
-    }
-
-    // Auf Gruppenkopf fallen lassen = ans Ende dieser Gruppe verschieben
-    function handleGroupDrop(e, key) {
-      e.preventDefault();
-      e.currentTarget.classList.remove('drag-over-group');
-      const sourceId = draggedLeftTaskId;
-      draggedLeftTaskId = null;
-      const task = getTask(sourceId);
-      if (!task) return;
-
-      tasks.splice(tasks.indexOf(task), 1);
-      let lastIndex = -1;
-      tasks.forEach((t, i) => { if (getGroupKey(t) === key) lastIndex = i; });
-      tasks.splice(lastIndex === -1 ? tasks.length : lastIndex + 1, 0, task);
-
-      const changed = getGroupKey(task) !== key;
-      if (changed) assignTaskToGroup(task, key);
-      saveTasks();
-      render();
-      showToast(changed ? `"${task.title}" ➔ Gruppe "${key}"` : `"${task.title}" ans Gruppenende verschoben`);
-    }
-
-    function handleLeftRowDragEnd(e) {
-      e.currentTarget.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom');
-      document.querySelectorAll('.gantt-left-row').forEach(r => r.classList.remove('drag-over-top', 'drag-over-bottom'));
-      document.querySelectorAll('.drag-over-group').forEach(r => r.classList.remove('drag-over-group'));
-      draggedLeftTaskId = null;
-    }
-
-    // 2D Gantt Rendering
-    function getStatusBarColors(status, isDark) {
-      if (status === 'Im Testen') {
-        return [isDark ? 'bg-violet-600/90 border-violet-400 text-violet-100' : 'bg-violet-600 border-violet-700 text-white shadow-sm', isDark ? 'bg-violet-400/50' : 'bg-violet-800/50'];
-      }
-      if (status === 'Abgebrochen') {
-        return [isDark ? 'bg-slate-800/60 border-slate-600 border-dashed text-slate-400 line-through' : 'bg-slate-200 border-slate-400 border-dashed text-slate-500 line-through', isDark ? 'bg-slate-600/30' : 'bg-slate-300/60'];
-      }
-      if (status === 'Erledigt') {
-        return [isDark ? 'bg-emerald-600/90 border-emerald-400 text-emerald-100' : 'bg-emerald-600 border-emerald-700 text-white shadow-sm', isDark ? 'bg-emerald-400/50' : 'bg-emerald-700/60'];
-      }
-      if (status === 'Blockiert') {
-        return [isDark ? 'bg-rose-600/90 border-rose-400 text-rose-100' : 'bg-rose-600 border-rose-700 text-white shadow-sm', isDark ? 'bg-rose-400/50' : 'bg-rose-700/60'];
-      }
-      if (status === 'Offen') {
-        return [isDark ? 'bg-slate-700/90 border-slate-500 text-slate-200' : 'bg-slate-500 border-slate-600 text-white shadow-sm', isDark ? 'bg-slate-500/50' : 'bg-slate-600/60'];
-      }
-      return [isDark ? 'bg-blue-600/90 border-blue-400 text-blue-100' : 'bg-blue-600 border-blue-700 text-white shadow-sm', isDark ? 'bg-blue-400/50' : 'bg-blue-700/60'];
-    }
-
-    const DEP_STYLE = {
-      done: { color: '#10b981', marker: 'arrowhead-done', dash: '', label: 'Freigegeben (Vorgänger erledigt)' },
-      wait: { color: '#6366f1', marker: 'arrowhead-wait', dash: '', label: 'Wartet (Vorgänger läuft noch)' },
-      conflict: { color: '#ef4444', marker: 'arrowhead-conflict', dash: '5,4', label: 'KONFLIKT: Nachfolger beginnt vor Ende des Vorgängers' }
-    };
-    const DEP_SEVERITY = { done: 0, wait: 1, conflict: 2 };
-
-    // Orthogonaler Pfad mit abgerundeten Ecken durch die gegebenen Punkte
-    function roundedPath(points, radius) {
-      const pts = points.filter((p, i) => i === 0 || p[0] !== points[i - 1][0] || p[1] !== points[i - 1][1]);
-      let d = `M ${pts[0][0]} ${pts[0][1]}`;
-      for (let i = 1; i < pts.length - 1; i++) {
-        const [px, py] = pts[i - 1];
-        const [cx, cy] = pts[i];
-        const [nx, ny] = pts[i + 1];
-        const lenIn = Math.hypot(cx - px, cy - py);
-        const lenOut = Math.hypot(nx - cx, ny - cy);
-        const r = Math.min(radius, lenIn / 2, lenOut / 2);
-        const ax = cx - ((cx - px) / lenIn) * r;
-        const ay = cy - ((cy - py) / lenIn) * r;
-        const bx = cx + ((nx - cx) / lenOut) * r;
-        const by = cy + ((ny - cy) / lenOut) * r;
-        d += ` L ${ax} ${ay} Q ${cx} ${cy} ${bx} ${by}`;
-      }
-      const last = pts[pts.length - 1];
-      return d + ` L ${last[0]} ${last[1]}`;
-    }
-
-    // Ende -> Anfang: vom Balkenende des Vorgängers zum Balkenanfang des Nachfolgers
-    function buildDependencyPath(from, to) {
-      const OUT = 12;
-      const x1 = from.endX + 2;
-      const y1 = from.centerY;
-      const x2 = to.startX - 3;
-      const y2 = to.centerY;
-
-      if (x2 - OUT >= x1 + 4) {
-        // genug Platz: entlang der Vorgängerzeile, dann senkrecht in die Nachfolgerzeile
-        return roundedPath([[x1, y1], [x2 - OUT, y1], [x2 - OUT, y2], [x2, y2]], 6);
-      }
-      // Nachfolger beginnt links vom Vorgängerende: um die Zeilengrenze herumführen
-      const yMid = y2 > y1 ? to.top : to.top + to.height;
-      return roundedPath([[x1, y1], [x1 + OUT, y1], [x1 + OUT, yMid], [x2 - OUT, yMid], [x2 - OUT, y2], [x2, y2]], 6);
-    }
-
-    function renderGantt(filteredTasks) {
-      const isDark = document.documentElement.classList.contains('dark');
-      const labelList = document.getElementById('ganttTaskLabelList');
-      const headerRow = document.getElementById('ganttHeaderRow');
-      const bodyRows = document.getElementById('ganttBodyRows');
-      const todayIndicator = document.getElementById('ganttTodayIndicator');
-      const svg = document.getElementById('ganttDependencySvg');
-      const arrowGroup = document.getElementById('svgArrowGroup');
-      const timelineWrapper = document.getElementById('ganttTimelineWrapper');
-
-      clearDependencyHighlight();
-      labelList.innerHTML = '';
-      headerRow.innerHTML = '';
-      bodyRows.innerHTML = '';
-      if (arrowGroup) arrowGroup.innerHTML = '';
-      cachedBarPositions = {};
-      cachedGroupPositions = {};
-
-      if (filteredTasks.length === 0) {
-        labelList.innerHTML = '<div class="p-4 text-xs text-slate-400 dark:text-slate-500">Keine Aufgaben</div>';
-        headerRow.innerHTML = '<div class="p-4 text-xs text-slate-400 dark:text-slate-500">Keine Timeline-Daten</div>';
-        todayIndicator.classList.add('hidden');
-        svg.setAttribute('width', 0);
-        svg.setAttribute('height', 0);
-        return;
-      }
-
-      let minDate = new Date();
-      let maxDate = new Date();
-
-      filteredTasks.forEach((t, i) => {
-        const s = new Date(t.startDate || toISO(new Date()));
-        const e = new Date(t.endDate || t.startDate || toISO(new Date()));
-        if (i === 0) {
-          minDate = new Date(s);
-          maxDate = new Date(e);
-        } else {
-          if (s < minDate) minDate = new Date(s);
-          if (e > maxDate) maxDate = new Date(e);
-        }
-      });
-
-      const dayWidth = ganttDayWidth;
-
-      // Heute immer im Zeitraum; Rand links/rechts wächst beim Rauszoomen mit
-      const todayStart = new Date();
-      if (todayStart < minDate) minDate = new Date(todayStart);
-      if (todayStart > maxDate) maxDate = new Date(todayStart);
-      // halbe Bildschirmbreite Puffer je Seite, damit Zoomen an der Mausposition immer möglich ist
-      const halfViewDays = Math.ceil(timelineWrapper.clientWidth / dayWidth / 2);
-      const padDays = Math.max(3, Math.round(140 / dayWidth), halfViewDays);
-      minDate.setDate(minDate.getDate() - padDays);
-      maxDate.setDate(maxDate.getDate() + padDays);
-      minDate.setHours(0, 0, 0, 0);
-      maxDate.setHours(0, 0, 0, 0);
-
-      // Beim Rauszoomen die sichtbare Breite mit Zeit füllen statt mit leerer Fläche
-      const minVisibleDays = Math.ceil(timelineWrapper.clientWidth / dayWidth) + 1;
-      if ((maxDate - minDate) / 86400000 < minVisibleDays) {
-        maxDate = new Date(minDate);
-        maxDate.setDate(maxDate.getDate() + minVisibleDays);
-      }
-      ganttMinDate = new Date(minDate);
-
-      const totalDays = Math.max(1, Math.round((maxDate - minDate) / (1000 * 60 * 60 * 24)));
-
-      const totalTimelineWidth = totalDays * dayWidth;
-      document.getElementById('ganttInnerTimeline').style.width = `${totalTimelineWidth}px`;
-
-      let curr = new Date(minDate);
-      let dayIndex = 0;
-
-      while (curr <= maxDate) {
-        const cell = document.createElement('div');
-        const isMonday = curr.getDay() === 1;
-        const isMonthStart = curr.getDate() === 1;
-        // Trennlinien je nach Zoomstufe: Tage > Wochen > Monate
-        const showLine = dayWidth >= 12 || (dayWidth >= 5 ? isMonday || isMonthStart : isMonthStart);
-        cell.className = `${showLine ? 'border-l' : ''} ${isMonthStart && dayWidth < 28 ? 'border-slate-400 dark:border-slate-600' : 'border-slate-200 dark:border-slate-800/80'} text-[10px] text-slate-500 dark:text-slate-400 flex flex-col justify-center select-none flex-shrink-0 relative overflow-visible whitespace-nowrap ${dayWidth >= 28 ? 'items-center' : 'items-start pl-1'}`;
-        cell.style.width = `${dayWidth}px`;
-
-        const isWeekend = curr.getDay() === 0 || curr.getDay() === 6;
-        if (isWeekend && dayWidth >= 5) cell.classList.add('bg-slate-200/40', 'dark:bg-slate-900/40');
-
-        const isTodayCell = curr.toDateString() === new Date().toDateString();
-        if (isTodayCell) cell.classList.add('text-emerald-600', 'dark:text-emerald-400', 'font-bold', 'bg-emerald-500/10');
-
-        const monthLabel = curr.toLocaleDateString('de-DE', { month: dayWidth < 5 ? 'short' : 'long', year: curr.getMonth() === 0 || dayIndex === 0 ? 'numeric' : undefined });
-        if (dayWidth >= 56) {
-          // Tage: Wochentag + Datum
-          cell.innerHTML = `
-            <span class="text-[9px] uppercase text-slate-400 dark:text-slate-500">${curr.toLocaleDateString('de-DE', { weekday: 'short' })}${isMonday ? ` · KW ${getWeekNumber(curr)}` : ''}</span>
-            <span class="${isTodayCell ? 'text-emerald-600 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-300'}">${curr.getDate()}.${curr.getMonth() + 1}.</span>
-          `;
-        } else if (dayWidth >= 28) {
-          // Wochen: jeden Tag die Zahl, montags Datum + KW
-          if (isMonday || isMonthStart || dayIndex === 0) {
-            cell.innerHTML = `
-              <span class="text-[9px] text-slate-700 dark:text-slate-400 font-semibold">${curr.getDate()}.${curr.getMonth() + 1}.</span>
-              <span class="text-[8px] text-slate-400 dark:text-slate-500">KW ${getWeekNumber(curr)}</span>
-            `;
-          } else {
-            cell.innerHTML = `<span class="text-[9px] text-slate-400 dark:text-slate-500">${curr.getDate()}</span>`;
-          }
-        } else if (dayWidth >= 8) {
-          // Monate: oben Monat, unten Kalenderwochen
-          cell.innerHTML = `
-            <span class="text-[9px] font-semibold text-slate-700 dark:text-slate-300 h-3.5">${isMonthStart || dayIndex === 0 ? monthLabel : ''}</span>
-            <span class="text-[8px] text-slate-400 dark:text-slate-500 h-3">${isMonday && dayWidth * 7 >= 30 ? `KW ${getWeekNumber(curr)}` : ''}</span>
-          `;
-        } else if (isMonthStart || dayIndex === 0) {
-          // Quartal / Jahr: nur Monate
-          cell.innerHTML = `<span class="text-[9px] font-semibold text-slate-700 dark:text-slate-300">${monthLabel}</span>`;
-        }
-
-        headerRow.appendChild(cell);
-        curr.setDate(curr.getDate() + 1);
-        dayIndex++;
-      }
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const diffToToday = (today - minDate) / (1000 * 60 * 60 * 24);
-      if (diffToToday >= 0 && diffToToday <= totalDays) {
-        todayIndicator.classList.remove('hidden');
-        todayIndicator.style.left = `${diffToToday * dayWidth + (dayWidth / 2)}px`;
-      } else {
-        todayIndicator.classList.add('hidden');
-      }
-
-      // Pixel-Spanne eines Zeitraums auf der Timeline
-      const spanPx = (startStr, endStr) => {
-        const s = new Date(startStr || toISO(new Date()));
-        const e = new Date(endStr || startStr || toISO(new Date()));
-        s.setHours(0, 0, 0, 0);
-        e.setHours(0, 0, 0, 0);
-        const startOffsetDays = (s - minDate) / (1000 * 60 * 60 * 24);
-        const durationDays = Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1);
-        const left = Math.max(0, startOffsetDays * dayWidth);
-        return { left, width: Math.max(dayWidth * 0.8, durationDays * dayWidth), durationDays };
-      };
-
-      let y = 0;
-
-      const renderGroupRow = (group) => {
-        const collapsed = isGroupCollapsed(group.key);
-        const color = getGroupColor(group.key);
-        const ids = group.tasks.map(t => t.id).join(',');
-        const doneCount = group.tasks.filter(t => t.status === 'Erledigt').length;
-
-        let gStart = null;
-        let gEnd = null;
-        let weightSum = 0;
-        let progressSum = 0;
-        group.tasks.forEach(t => {
-          if (!gStart || t.startDate < gStart) gStart = t.startDate;
-          if (!gEnd || t.endDate > gEnd) gEnd = t.endDate;
-          const dur = spanPx(t.startDate, t.endDate).durationDays;
-          weightSum += dur;
-          progressSum += (t.progress || 0) * dur;
-        });
-        const pct = weightSum ? Math.round(progressSum / weightSum) : 0;
-        const conflicts = group.tasks.reduce((n, t) => n + getPredecessors(t).filter(p => getDependencyState(p, t) === 'conflict').length, 0);
-        const canRename = groupBy === 'group' && group.key !== NO_GROUP;
-
-        // LEFT GROUP HEADER
-        const left = document.createElement('div');
-        left.className = `gantt-left-row gantt-group-left h-10 pl-2 pr-3 flex items-center justify-between text-xs border-b border-slate-200 dark:border-slate-800/60 bg-slate-100 dark:bg-slate-900/90 ${collapsed ? 'collapsed' : ''}`;
-        left.style.borderLeft = `4px solid ${color}`;
-        left.dataset.groupTasks = ids;
-        left.title = collapsed ? 'Gruppe aufklappen' : 'Gruppe zuklappen';
-        left.onclick = (e) => toggleGroup(group.key, e);
-        left.ondragover = handleGroupDragOver;
-        left.ondragleave = handleGroupDragLeave;
-        left.ondrop = (e) => handleGroupDrop(e, group.key);
-        left.innerHTML = `
-          <div class="flex items-center gap-2 min-w-0">
-            <i class="fa-solid fa-chevron-down group-chevron text-[10px] text-slate-500 dark:text-slate-400 w-3"></i>
-            <span class="font-semibold text-slate-800 dark:text-slate-100 truncate" title="${escapeHTML(group.key)}">${escapeHTML(group.key)}</span>
-            <span class="text-[10px] px-1.5 py-px rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 flex-shrink-0" title="${doneCount} von ${group.tasks.length} erledigt">${doneCount}/${group.tasks.length}</span>
-            ${conflicts ? `<i class="fa-solid fa-triangle-exclamation text-rose-500 text-[10px] flex-shrink-0" title="${conflicts} Abhängigkeitskonflikt(e) in dieser Gruppe"></i>` : ''}
-          </div>
-          <div class="flex items-center gap-1 flex-shrink-0">
-            ${canRename ? `<button type="button" data-rename-group class="p-1 rounded text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-white dark:hover:bg-slate-800 transition" title="Gruppe umbenennen"><i class="fa-solid fa-pen text-[9px]"></i></button>` : ''}
-            <button type="button" data-add-group class="p-1 rounded text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-white dark:hover:bg-slate-800 transition" title="Aufgabe in dieser Gruppe anlegen"><i class="fa-solid fa-plus text-[10px]"></i></button>
-            <span class="text-[11px] font-mono font-semibold ml-1" style="color:${color}">${pct}%</span>
-          </div>
-        `;
-        left.querySelector('[data-add-group]').onclick = (e) => addTaskToGroup(group.key, e);
-        if (canRename) left.querySelector('[data-rename-group]').onclick = (e) => renameGroup(group.key, e);
-        labelList.appendChild(left);
-
-        // RIGHT GROUP SUMMARY ROW
-        const span = spanPx(gStart, gEnd);
-        const row = document.createElement('div');
-        row.className = 'gantt-group-row h-10 relative border-b border-slate-200 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-900/40 cursor-pointer';
-        row.style.width = `${totalTimelineWidth}px`;
-        row.dataset.groupTasks = ids;
-        row.onclick = (e) => toggleGroup(group.key, e);
-        row.innerHTML = `
-          <div class="gantt-group-bar absolute" style="left:${span.left}px; width:${span.width}px; top:13px; height:14px;"
-               title="${escapeHTML(group.key)}: ${formatDate(gStart)} bis ${formatDate(gEnd)} – ${pct}% (${group.tasks.length} Aufgaben)">
-            <div class="absolute inset-x-0 top-0 h-[9px] rounded-sm overflow-hidden" style="background:${color}33; border:1px solid ${color};">
-              <div class="h-full" style="width:${pct}%; background:${color}; opacity:0.8;"></div>
-            </div>
-            <span class="absolute left-0 bottom-0 w-0 h-0" style="border-top:6px solid ${color}; border-right:6px solid transparent;"></span>
-            <span class="absolute right-0 bottom-0 w-0 h-0" style="border-top:6px solid ${color}; border-left:6px solid transparent;"></span>
-            <span class="absolute top-[-2px] whitespace-nowrap text-[10px] font-semibold pointer-events-none" style="left:${span.width + 8}px; color:${color};">${escapeHTML(group.key)}${collapsed ? ` · ${group.tasks.length} Aufgaben` : ''}</span>
-          </div>
-        `;
-        bodyRows.appendChild(row);
-
-        cachedGroupPositions[group.key] = {
-          id: `group:${group.key}`,
-          startX: span.left,
-          endX: span.left + span.width,
-          centerY: y + 18,
-          top: y,
-          height: GROUP_H
-        };
-        y += GROUP_H;
-      };
-
-      const renderTaskRow = (task, groupKey) => {
-        const isSelf = linkingPredecessorId === task.id;
-        const isInvalid = linkingPredecessorId && (isSelf || wouldCauseCircularDependency(linkingPredecessorId, task.id));
-        const isValidTarget = linkingPredecessorId && !isInvalid;
-        const color = groupKey !== null ? getGroupColor(groupKey) : null;
-
-        const preds = getPredecessors(task);
-        const succs = getSuccessors(task.id);
-        const conflictPreds = preds.filter(p => getDependencyState(p, task) === 'conflict');
-        const openPreds = preds.filter(p => !isClosed(p));
-
-        let depInfo = '';
-        if (conflictPreds.length) {
-          depInfo = `<span class="text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1 flex-shrink-0" title="Beginnt vor dem Ende von: ${escapeHTML(conflictPreds.map(p => p.title).join(', '))}"><i class="fa-solid fa-triangle-exclamation text-[9px]"></i>Konflikt</span>`;
-        } else if (openPreds.length) {
-          depInfo = `<span class="text-indigo-600 dark:text-indigo-400 flex items-center gap-1 flex-shrink-0" title="Wartet auf: ${escapeHTML(openPreds.map(p => p.title).join(', '))}"><i class="fa-solid fa-hourglass-half text-[9px]"></i>wartet auf ${openPreds.length}</span>`;
-        } else if (preds.length) {
-          depInfo = `<span class="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 flex-shrink-0" title="Alle Vorgänger erledigt: ${escapeHTML(preds.map(p => p.title).join(', '))}"><i class="fa-solid fa-circle-check text-[9px]"></i>freigegeben</span>`;
-        }
-        const succInfo = succs.length
-          ? `<span class="text-slate-400 dark:text-slate-500 flex items-center gap-1 flex-shrink-0" title="Nachfolger: ${escapeHTML(succs.map(s => s.title).join(', '))}"><i class="fa-solid fa-arrow-right-long text-[9px]"></i>${succs.length}</span>`
-          : '';
-
-        // LEFT ROW
-        const labelRow = document.createElement('div');
-        labelRow.className = `gantt-left-row h-14 ${color ? 'pl-4' : 'pl-3'} pr-3 flex items-center justify-between text-xs transition border-b border-slate-200 dark:border-slate-800/60 ${isValidTarget ? 'valid-target bg-emerald-500/5' : ''} ${isInvalid ? 'invalid-target' : ''}`;
-        if (color) labelRow.style.boxShadow = `inset 3px 0 0 ${color}55`;
-        labelRow.draggable = !linkingPredecessorId;
-        labelRow.id = `gantt-label-${task.id}`;
-        labelRow.dataset.taskId = task.id;
-
-        if (!linkingPredecessorId) {
-          labelRow.ondragstart = (e) => handleLeftRowDragStart(e, task.id);
-          labelRow.ondragover = (e) => handleLeftRowDragOver(e);
-          labelRow.ondragleave = (e) => handleLeftRowDragLeave(e);
-          labelRow.ondrop = (e) => handleLeftRowDrop(e, task.id);
-          labelRow.ondragend = (e) => handleLeftRowDragEnd(e);
-        }
-
-        labelRow.onclick = (e) => handleTaskClickInGantt(task.id, e);
-        labelRow.onmouseenter = () => highlightDependencyChain(task.id);
-        labelRow.onmouseleave = clearDependencyHighlight;
-
-        labelRow.innerHTML = `
-          <div class="flex items-center gap-2 truncate pr-2 min-w-0">
-            <span class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-grab px-0.5" title="Ziehen zum Sortieren oder in eine andere Gruppe verschieben">
-              <i class="fa-solid fa-grip-vertical text-xs"></i>
-            </span>
-            <div class="truncate min-w-0">
-              <div class="font-medium text-slate-900 dark:text-slate-200 truncate" title="${escapeHTML(task.title)}">${escapeHTML(task.title)}</div>
-              <div class="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5 min-w-0">
-                ${[
-                  task.owner ? `<span class="flex-shrink-0 font-semibold text-slate-600 dark:text-slate-300" title="Verantwortlich"><i class="fa-solid fa-user text-[8px] mr-0.5"></i>${escapeHTML(task.owner)}</span>` : '',
-                  `<span class="flex-shrink-0 ${task.status === 'Blockiert' ? 'text-rose-600 dark:text-rose-400 font-semibold' : ''}" ${task.blockReason || task.waitingFor ? `title="${escapeHTML([task.blockReason, task.waitingFor ? 'Wartet auf: ' + task.waitingFor : ''].filter(Boolean).join(' – '))}"` : ''}>${escapeHTML(task.status)}${task.status === 'Blockiert' && (task.blockReason || task.waitingFor) ? ' <i class="fa-solid fa-circle-info text-[8px]"></i>' : ''}</span>`,
-                  (groupBy === 'phase' ? '' : task.phase) ? `<span class="truncate">${escapeHTML(task.phase)}</span>` : '',
-                  depInfo,
-                  succInfo
-                ].filter(Boolean).join('<span class="flex-shrink-0">•</span>')}
-              </div>
-            </div>
-          </div>
-          <span class="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold flex-shrink-0">${task.progress || 0}%</span>
-        `;
-        labelList.appendChild(labelRow);
-
-        // RIGHT ROW
-        const row = document.createElement('div');
-        row.className = `gantt-row h-14 relative flex items-center border-b border-slate-100 dark:border-slate-800/60 ${isValidTarget ? 'valid-target bg-emerald-500/5' : ''} ${isInvalid ? 'invalid-target' : ''}`;
-        row.style.width = `${totalTimelineWidth}px`;
-        row.id = `gantt-row-${task.id}`;
-        row.dataset.taskId = task.id;
-        row.onclick = (e) => handleTaskClickInGantt(task.id, e);
-        row.onmouseenter = () => highlightDependencyChain(task.id);
-        row.onmouseleave = clearDependencyHighlight;
-
-        let span = spanPx(task.startDate, task.endDate);
-        if (task.milestone) {
-          // Raute in der Mitte des Endtages
-          const end = spanPx(task.endDate, task.endDate);
-          span = { left: end.left + dayWidth / 2 - 11, width: 22, durationDays: 1 };
-        }
-        cachedBarPositions[task.id] = {
-          id: task.id,
-          startX: span.left,
-          endX: span.left + span.width,
-          centerY: y + ROW_H / 2,
-          top: y,
-          height: ROW_H,
-          title: task.title
-        };
-
-        let [barColor, progressFillColor] = getStatusBarColors(task.status, isDark);
-        if (isSelf) {
-          barColor += ' ring-2 ring-emerald-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 animate-pulse';
-        }
-
-        const barWrapper = document.createElement('div');
-        barWrapper.className = 'gantt-bar-wrapper';
-        barWrapper.style.left = `${span.left}px`;
-
-        const barTooltip = `${escapeHTML(task.title)} (${task.status})\n${formatDate(task.startDate)} bis ${formatDate(task.endDate)} - ${task.progress || 0}%${task.owner ? `\nVerantwortlich: ${escapeHTML(task.owner)}` : ''}${task.blockReason ? `\nBlockiert: ${escapeHTML(task.blockReason)}` : ''}${preds.length ? `\nNach: ${escapeHTML(preds.map(p => p.title).join(', '))}` : ''}`;
-        const isShort = span.width < 110;
-        const outsideLabel = isShort
-          ? `<span class="ml-1.5 text-[11px] font-medium whitespace-nowrap text-slate-700 dark:text-slate-300 pointer-events-none ${task.status === 'Abgebrochen' ? 'line-through opacity-60' : ''}">${escapeHTML(task.title)}${task.milestone ? ` · ${formatDate(task.endDate)}` : ''}</span>`
-          : '';
-
-        const connectBtn = `
-          <!-- THE HOVER PLUS (+) CONNECTOR HANDLE -->
-          <button type="button" 
-                  onclick="startDependencyLinking('${task.id}', event)" 
-                  class="dep-connect-btn ml-1.5 w-6 h-6 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center text-xs font-bold shadow-lg shadow-rose-500/40 hover:scale-110 active:scale-95 transition-all cursor-pointer border border-white/40 flex-shrink-0"
-                  title="Abhängigkeit erstellen: Klicke hier und danach auf den Nachfolger-Task!">
-            <i class="fa-solid fa-plus text-[11px] pointer-events-none"></i>
-          </button>`;
-
-        if (task.milestone) {
-          const milestoneColor = isClosed(task) ? '#10b981' : '#f59e0b';
-          barWrapper.innerHTML = `
-            <div class="gantt-bar w-[22px] h-[22px] flex items-center justify-center ${isSelf ? 'animate-pulse' : ''}" onclick="handleTaskClickInGantt('${task.id}', event)" title="Meilenstein: ${barTooltip}">
-              <div class="w-4 h-4 rotate-45 rounded-[3px] border-2 shadow" style="background:${milestoneColor}; border-color:${isDark ? '#fde68a' : '#92400e'};"></div>
-            </div>
-            ${connectBtn}
-            ${outsideLabel}
-          `;
-          row.appendChild(barWrapper);
-          bodyRows.appendChild(row);
-          y += ROW_H;
-          return;
-        }
-
-        barWrapper.innerHTML = `
-          <!-- The Main Time Bar -->
-          <div class="gantt-bar h-8 rounded-lg border flex items-center px-2.5 overflow-hidden text-xs select-none relative ${barColor}"
-               style="width: ${span.width}px;${color ? ` box-shadow: inset 3px 0 0 ${color};` : ''}"
-               onclick="handleTaskClickInGantt('${task.id}', event)"
-               title="${barTooltip}">
-            <div class="absolute left-0 top-0 bottom-0 ${progressFillColor} pointer-events-none transition-all" style="width: ${task.progress || 0}%;"></div>
-            ${isShort
-              ? (span.width >= 44 ? `<div class="relative z-10 w-full text-center text-[10px] font-mono font-medium">${task.progress || 0}%</div>` : '')
-              : `<div class="relative z-10 truncate flex items-center justify-between w-full font-medium">
-              <span class="truncate drop-shadow-xs">${escapeHTML(task.title)}</span>
-              <span class="ml-1.5 text-[10px] font-mono opacity-95">${task.progress || 0}%</span>
-            </div>`}
-          </div>
-          ${connectBtn}
-          ${outsideLabel}
-        `;
-
-        row.appendChild(barWrapper);
-        bodyRows.appendChild(row);
-        y += ROW_H;
-      };
-
-      buildGroups(filteredTasks).forEach(group => {
-        if (group.key !== null) renderGroupRow(group);
-        if (!isGroupCollapsed(group.key)) group.tasks.forEach(task => renderTaskRow(task, group.key));
-      });
-
-      // Abstandshalter, damit beide Spalten gleich weit scrollen (horizontale Scrollbar der Timeline ausgleichen)
-      const scrollbarH = timelineWrapper.offsetHeight - timelineWrapper.clientHeight;
-      const rightSpacer = document.createElement('div');
-      rightSpacer.style.height = '24px';
-      bodyRows.appendChild(rightSpacer);
-      const leftSpacer = document.createElement('div');
-      leftSpacer.style.height = `${24 + Math.max(0, scrollbarH)}px`;
-      labelList.appendChild(leftSpacer);
-
-      svg.setAttribute('width', totalTimelineWidth);
-      svg.setAttribute('height', y);
-      svg.style.width = `${totalTimelineWidth}px`;
-      svg.style.height = `${y}px`;
-
-      // Endpunkt einer Aufgabe: eigener Balken oder – bei zugeklappter Gruppe – der Sammelbalken
-      const visibleIds = new Set(filteredTasks.map(t => t.id));
-      const endpointOf = (task) => {
-        if (cachedBarPositions[task.id]) return cachedBarPositions[task.id];
-        if (!visibleIds.has(task.id)) return null;
-        return cachedGroupPositions[getGroupKey(task)] || null;
-      };
-
-      // Kanten sammeln (bei zugeklappten Gruppen zusammenfassen)
-      const edges = new Map();
-      filteredTasks.forEach(task => {
-        getPredecessors(task).forEach(pred => {
-          const from = endpointOf(pred);
-          const to = endpointOf(task);
-          if (!from || !to || from === to) return;
-          const sig = `${from.id}>${to.id}`;
-          const state = getDependencyState(pred, task);
-          if (!edges.has(sig)) {
-            edges.set(sig, { from, to, state, pairs: [] });
-          }
-          const edge = edges.get(sig);
-          if (DEP_SEVERITY[state] > DEP_SEVERITY[edge.state]) edge.state = state;
-          edge.pairs.push({ pred, task });
-        });
-      });
-
-      const svgNS = 'http://www.w3.org/2000/svg';
-      edges.forEach(edge => {
-        const style = DEP_STYLE[edge.state];
-        const d = buildDependencyPath(edge.from, edge.to);
-        const single = edge.pairs.length === 1;
-
-        const g = document.createElementNS(svgNS, 'g');
-        g.setAttribute('class', 'dep-edge');
-        g.dataset.from = edge.pairs[0].pred.id;
-        g.dataset.to = edge.pairs[0].task.id;
-
-        const line = document.createElementNS(svgNS, 'path');
-        line.setAttribute('d', d);
-        line.setAttribute('fill', 'none');
-        line.setAttribute('stroke', style.color);
-        line.setAttribute('stroke-width', '2');
-        line.setAttribute('stroke-linejoin', 'round');
-        if (style.dash) line.setAttribute('stroke-dasharray', style.dash);
-        line.setAttribute('marker-end', `url(#${style.marker})`);
-        line.setAttribute('class', 'dep-line');
-
-        const dot = document.createElementNS(svgNS, 'circle');
-        dot.setAttribute('cx', edge.from.endX + 2);
-        dot.setAttribute('cy', edge.from.centerY);
-        dot.setAttribute('r', '3');
-        dot.setAttribute('fill', style.color);
-        dot.setAttribute('class', 'dep-line');
-
-        // breiter, unsichtbarer Klickbereich
-        const hit = document.createElementNS(svgNS, 'path');
-        hit.setAttribute('d', d);
-        hit.setAttribute('fill', 'none');
-        hit.setAttribute('stroke', 'transparent');
-        hit.setAttribute('stroke-width', '12');
-        hit.setAttribute('class', 'dep-hit');
-        const title = document.createElementNS(svgNS, 'title');
-        const lines = edge.pairs.map(p => `${p.pred.title}  ➔  ${p.task.title}`).join('\n');
-        title.textContent = `${lines}\n${style.label}\n${single ? 'Klick: Abhängigkeit lösen' : 'Gruppe aufklappen, um einzelne Abhängigkeiten zu lösen'}`;
-        hit.appendChild(title);
-        hit.onclick = (e) => {
-          if (single) confirmRemoveDependency(edge.pairs[0].task.id, edge.pairs[0].pred.id, e);
-          else e.stopPropagation();
-        };
-
-        g.appendChild(line);
-        g.appendChild(dot);
-        g.appendChild(hit);
-        arrowGroup.appendChild(g);
-      });
-    }
-
-    function scrollGanttToToday() {
-      const todayIndicator = document.getElementById('ganttTodayIndicator');
-      const wrapper = document.getElementById('ganttTimelineWrapper');
-      if (todayIndicator && wrapper && !todayIndicator.classList.contains('hidden')) {
-        const left = parseFloat(todayIndicator.style.left || 0);
-        wrapper.scrollTo({
-          left: Math.max(0, left - wrapper.clientWidth / 2),
-          behavior: 'smooth'
-        });
-      }
-    }
-
-    function getWeekNumber(d) {
-      const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-      const dayNum = date.getUTCDay() || 7;
-      date.setUTCDate(date.getUTCDate() + 4 - dayNum);
-      const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-      return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
-    }
-
-    function setGanttZoom(preset) {
-      applyGanttZoom(ZOOM_PRESETS[preset]);
-    }
-
-    // factor > 1 = reinzoomen (weniger Zeitraum), < 1 = rauszoomen (mehr Zeitraum)
-    function zoomGantt(factor, anchorClientX) {
-      applyGanttZoom(ganttDayWidth * factor, anchorClientX);
-    }
-
-    // Setzt den Zoom und hält das Datum unter dem Anker (Maus bzw. Mitte) an derselben Stelle
-    function applyGanttZoom(newDayWidth, anchorClientX) {
-      const wrapper = document.getElementById('ganttTimelineWrapper');
-      const rect = wrapper.getBoundingClientRect();
-      const anchorX = anchorClientX !== undefined ? anchorClientX - rect.left : wrapper.clientWidth / 2;
-      const anchorDay = ganttMinDate ? (wrapper.scrollLeft + anchorX) / ganttDayWidth : null;
-      const anchorDate = anchorDay !== null ? ganttMinDate.getTime() + anchorDay * 86400000 : null;
-
-      ganttDayWidth = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, newDayWidth));
-      try { localStorage.setItem(ZOOM_KEY, String(ganttDayWidth)); } catch (e) {}
-      updateZoomControls();
-      renderGantt(getFilteredTasks());
-
-      if (anchorDate !== null && ganttMinDate) {
-        const newDay = (anchorDate - ganttMinDate.getTime()) / 86400000;
-        wrapper.scrollLeft = Math.max(0, newDay * ganttDayWidth - anchorX);
-      }
-    }
-
-    function updateZoomControls() {
-      const active = Object.entries(ZOOM_PRESETS).find(([, w]) => Math.abs(w - ganttDayWidth) < 0.5);
-      document.querySelectorAll('[data-zoom-preset]').forEach(btn => {
-        const isActive = active && btn.id === `ganttZoom${active[0].charAt(0).toUpperCase()}${active[0].slice(1)}`;
-        btn.className = isActive
-          ? 'px-2 py-1 rounded bg-emerald-600 text-white font-medium shadow transition'
-          : 'px-2 py-1 rounded text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition';
-      });
-      const wrapper = document.getElementById('ganttTimelineWrapper');
-      const days = Math.round((wrapper.clientWidth || 900) / ganttDayWidth);
-      const info = days >= 120 ? `≈ ${Math.round(days / 30.4)} Monate sichtbar` : days >= 21 ? `≈ ${Math.round(days / 7)} Wochen sichtbar` : `≈ ${days} Tage sichtbar`;
-      document.getElementById('ganttZoomInfo').innerText = info;
-    }
-
-    function initGanttZoom() {
-      try {
-        const stored = parseFloat(localStorage.getItem(ZOOM_KEY));
-        if (stored >= ZOOM_MIN && stored <= ZOOM_MAX) ganttDayWidth = stored;
-      } catch (e) {}
-      updateZoomControls();
-
-      // Strg/⌘ + Mausrad (bzw. Pinch auf dem Trackpad) zoomt an der Mausposition
-      document.getElementById('ganttTimelineWrapper').addEventListener('wheel', (e) => {
-        if (!e.ctrlKey && !e.metaKey) return;
-        e.preventDefault();
-        zoomGantt(Math.exp(-e.deltaY * 0.0025), e.clientX);
-      }, { passive: false });
-      window.addEventListener('resize', updateZoomControls);
-    }
-
-    // View Switching (Gantt 2D, Kanban, Table)
-    function switchView(view) {
-      currentView = view;
-      const ganttView = document.getElementById('ganttView');
-      const kanbanView = document.getElementById('kanbanView');
-      const tableView = document.getElementById('tableView');
-
-      const btnGantt = document.getElementById('btnViewGantt');
-      const btnKanban = document.getElementById('btnViewKanban');
-      const btnTable = document.getElementById('btnViewTable');
-
-      const views = [ganttView, kanbanView, tableView].filter(Boolean);
-      const buttons = [btnGantt, btnKanban, btnTable].filter(Boolean);
-
-      views.forEach(v => v.classList.add('hidden'));
-      buttons.forEach(b => {
-        b.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200';
-      });
-
-      if (view === 'gantt' && ganttView && btnGantt) {
-        ganttView.classList.remove('hidden');
-        btnGantt.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all bg-emerald-600 text-white shadow-sm';
-        setTimeout(scrollGanttToToday, 60);
-      } else if (view === 'kanban' && kanbanView && btnKanban) {
-        kanbanView.classList.remove('hidden');
-        kanbanView.classList.add('grid');
-        btnKanban.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all bg-emerald-600 text-white shadow-sm';
-      } else if (view === 'table' && tableView && btnTable) {
-        tableView.classList.remove('hidden');
-        btnTable.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all bg-emerald-600 text-white shadow-sm';
-      }
-      render();
-    }
-
-    // Kanban Rendering
-    function renderKanban(filteredTasks) {
-      const colMap = {
-        'Offen': { el: document.getElementById('colOffen'), badge: document.getElementById('badgeCountOffen'), list: [] },
-        'In Arbeit': { el: document.getElementById('colInArbeit'), badge: document.getElementById('badgeCountInArbeit'), list: [] },
-        'Im Testen': { el: document.getElementById('colImTesten'), badge: document.getElementById('badgeCountImTesten'), list: [] },
-        'Blockiert': { el: document.getElementById('colBlockiert'), badge: document.getElementById('badgeCountBlockiert'), list: [] },
-        'Erledigt': { el: document.getElementById('colErledigt'), badge: document.getElementById('badgeCountErledigt'), list: [] }
-      };
-
-      Object.values(colMap).forEach(col => col.el.innerHTML = '');
-
-      // innerhalb der Spalten nach Gruppe sortiert
-      const ordered = buildGroups(filteredTasks, groupBy === 'status' ? 'none' : groupBy).flatMap(g => g.tasks);
-      ordered.forEach(task => {
-        if (task.status === 'Abgebrochen') {
-          colMap['Erledigt'].list.push(task);
-        } else if (colMap[task.status]) {
-          colMap[task.status].list.push(task);
-        } else {
-          colMap['Offen'].list.push(task);
-        }
-      });
-
-      Object.keys(colMap).forEach(key => {
-        const item = colMap[key];
-        item.badge.innerText = item.list.length;
-
-        if (item.list.length === 0) {
-          item.el.innerHTML = `
-            <div class="h-28 flex flex-col items-center justify-center border border-dashed border-slate-300 dark:border-slate-800/80 rounded-xl text-slate-400 dark:text-slate-600 text-xs">
-              <span>Keine Aufgaben</span>
-            </div>
-          `;
-          return;
-        }
-
-        item.list.forEach(t => {
-          const card = document.createElement('div');
-          card.className = 'kanban-card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 rounded-xl p-3.5 shadow-sm space-y-2.5';
-          card.draggable = true;
-          card.id = `card-${t.id}`;
-
-          card.ondragstart = (e) => handleDragStart(e, t.id);
-          card.ondragend = (e) => handleDragEnd(e);
-
-          const isOverdue = t.endDate && new Date(t.endDate) < new Date().setHours(0,0,0,0) && !isClosed(t);
-          const preds = getPredecessors(t);
-          const groupColor = getGroupColor(t.group || NO_GROUP);
-          card.style.borderLeft = `4px solid ${t.group ? groupColor : 'transparent'}`;
-
-          card.innerHTML = `
-            <div class="flex items-start justify-between gap-2">
-              <span class="text-xs font-semibold text-slate-900 dark:text-slate-100 leading-snug break-words flex-1 ${t.status === 'Abgebrochen' ? 'line-through opacity-60' : ''}">${t.milestone ? '<span class="inline-block w-2 h-2 rotate-45 bg-amber-500 mr-1.5 align-middle" title="Meilenstein"></span>' : ''}${escapeHTML(t.title)}</span>
-              <div class="flex items-center gap-1 opacity-70 hover:opacity-100 transition">
-                <button onclick="editTask('${t.id}')" title="Bearbeiten" class="p-1 hover:text-emerald-500 text-slate-400 dark:text-slate-400">
-                  <i class="fa-solid fa-pen text-xs"></i>
-                </button>
-                <button onclick="deleteTask('${t.id}')" title="Löschen" class="p-1 hover:text-rose-500 text-slate-400 dark:text-slate-400">
-                  <i class="fa-solid fa-trash-can text-xs"></i>
-                </button>
-              </div>
-            </div>
-
-            <div class="flex items-center flex-wrap gap-1.5">
-              ${t.group ? getGroupBadge(t.group) : ''}
-              ${getPhaseBadge(t.phase)}
-              ${getPriorityBadge(t.priority)}
-              ${t.owner ? `<span class="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center gap-1"><i class="fa-solid fa-user text-[8px]"></i>${escapeHTML(t.owner)}</span>` : ''}
-            </div>
-
-            ${preds.length ? `<div class="space-y-1">${preds.map(p => getDependencyChip(p, t)).join('')}</div>` : ''}
-
-            ${t.status === 'Blockiert' && (t.blockReason || t.waitingFor) ? `
-              <div class="text-[10px] text-rose-700 dark:text-rose-300 bg-rose-500/10 border border-rose-500/25 px-2 py-1 rounded-md space-y-0.5">
-                ${t.blockReason ? `<div class="flex gap-1.5"><i class="fa-solid fa-ban text-[9px] mt-0.5"></i><span>${escapeHTML(t.blockReason)}</span></div>` : ''}
-                ${t.waitingFor ? `<div class="flex gap-1.5"><i class="fa-solid fa-user-clock text-[9px] mt-0.5"></i><span>Wartet auf: ${escapeHTML(t.waitingFor)}</span></div>` : ''}
-              </div>` : ''}
-
-            <!-- Progress bar -->
-            <div class="space-y-1">
-              <div class="flex justify-between text-[10px] text-slate-500 dark:text-slate-400">
-                <span>Fortschritt</span>
-                <span class="font-semibold text-slate-800 dark:text-slate-200">${t.progress || 0}%</span>
-              </div>
-              <div class="w-full bg-slate-100 dark:bg-slate-950 rounded-full h-1.5 border border-slate-200 dark:border-slate-800">
-                <div class="bg-emerald-500 h-1.5 rounded-full transition-all" style="width: ${t.progress || 0}%"></div>
-              </div>
-            </div>
-
-            ${t.nextAction ? `
-              <div class="bg-slate-50 dark:bg-slate-950/70 rounded-lg p-2 border border-slate-200 dark:border-slate-800/60 text-[11px] text-slate-700 dark:text-slate-300 flex items-start gap-1.5">
-                <i class="fa-solid fa-arrow-right-long text-emerald-500 dark:text-emerald-400 mt-0.5"></i>
-                <div class="flex-1">
-                  <span class="text-slate-400 dark:text-slate-500 font-medium block text-[9px] uppercase tracking-wider">Nächster Schritt</span>
-                  <span class="leading-tight">${escapeHTML(t.nextAction)}</span>
-                </div>
-              </div>
-            ` : ''}
-
-            <div class="pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-              <div class="flex items-center gap-1.5 ${isOverdue ? 'text-rose-600 dark:text-rose-400 font-medium' : ''}">
-                <i class="fa-regular fa-clock text-xs"></i>
-                <span>${formatDate(t.endDate)}</span>
-                ${isOverdue ? '<span class="text-[10px] bg-rose-500/10 text-rose-600 dark:text-rose-300 px-1 rounded font-medium border border-rose-500/20">Fällig</span>' : ''}
-              </div>
-              <div>
-                <select onchange="updateTaskStatusDirectly('${t.id}', this.value)" class="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[10px] text-slate-700 dark:text-slate-300 rounded px-1.5 py-0.5 outline-none">
-                  ${getStatusOptions(t.status)}
-                </select>
-              </div>
-            </div>
-          `;
-          item.el.appendChild(card);
-        });
-      });
-    }
-
-    // Table Rendering
-    function renderTable(filteredTasks) {
-      const tbody = document.getElementById('tableBody');
-      const emptyState = document.getElementById('tableEmptyState');
-      tbody.innerHTML = '';
-
-      if (filteredTasks.length === 0) {
-        emptyState.classList.remove('hidden');
-        return;
-      }
-      emptyState.classList.add('hidden');
-
-      let list = [...filteredTasks];
-      if (sortColumn) {
-        list.sort((a, b) => {
-          let valA = a[sortColumn] || '';
-          let valB = b[sortColumn] || '';
-          if (sortColumn === 'priority') {
-            const weight = { 'Hoch': 3, 'Mittel': 2, 'Niedrig': 1 };
-            valA = weight[valA] || 0;
-            valB = weight[valB] || 0;
-          } else if (sortColumn === 'progress') {
-            valA = Number(valA) || 0;
-            valB = Number(valB) || 0;
-          }
-          if (valA < valB) return sortAsc ? -1 : 1;
-          if (valA > valB) return sortAsc ? 1 : -1;
-          return 0;
-        });
-      }
-
-      buildGroups(list).forEach(group => {
-        const collapsed = isGroupCollapsed(group.key);
-        if (group.key !== null) {
-          const color = getGroupColor(group.key);
-          const doneCount = group.tasks.filter(t => t.status === 'Erledigt').length;
-          const head = document.createElement('tr');
-          head.className = `cursor-pointer bg-slate-100 dark:bg-slate-900/90 hover:bg-slate-200/70 dark:hover:bg-slate-800/70 ${collapsed ? 'collapsed' : ''}`;
-          head.onclick = (e) => toggleGroup(group.key, e);
-          head.innerHTML = `
-            <td colspan="9" class="py-2 px-3 text-xs" style="box-shadow: inset 4px 0 0 ${color};">
-              <div class="flex items-center gap-2">
-                <i class="fa-solid fa-chevron-down group-chevron text-[10px] text-slate-500 w-3"></i>
-                <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHTML(group.key)}</span>
-                <span class="text-[10px] px-1.5 py-px rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">${doneCount}/${group.tasks.length} erledigt</span>
-              </div>
-            </td>`;
-          tbody.appendChild(head);
-        }
-        if (!collapsed) group.tasks.forEach(t => renderTableRow(t, group.key));
-      });
-
-      function renderTableRow(t, groupKey) {
-        const tr = document.createElement('tr');
-        tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 transition border-b border-slate-100 dark:border-slate-800/60';
-
-        const isOverdue = t.endDate && new Date(t.endDate) < new Date().setHours(0,0,0,0) && !isClosed(t);
-        const preds = getPredecessors(t);
-
-        tr.innerHTML = `
-          <td class="py-3.5 px-4" ${groupKey !== null ? `style="box-shadow: inset 4px 0 0 ${getGroupColor(groupKey)}55;"` : ''}>
-            <div class="font-medium text-slate-900 dark:text-slate-100 ${t.status === 'Abgebrochen' ? 'line-through opacity-60' : ''}">${t.milestone ? '<span class="inline-block w-2 h-2 rotate-45 bg-amber-500 mr-1.5 align-middle" title="Meilenstein"></span>' : ''}${escapeHTML(t.title)}${t.owner ? ` <span class="ml-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400"><i class="fa-solid fa-user text-[8px]"></i> ${escapeHTML(t.owner)}</span>` : ''}</div>
-            ${t.group && groupBy !== 'group' ? `<div class="mt-1">${getGroupBadge(t.group)}</div>` : ''}
-            ${t.notes ? `<div class="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-xs mt-0.5">${escapeHTML(t.notes)}</div>` : ''}
-          </td>
-          <td class="py-3.5 px-4">${getPhaseBadge(t.phase)}</td>
-          <td class="py-3.5 px-4">${getPriorityBadge(t.priority)}</td>
-          <td class="py-3.5 px-4">
-            <select onchange="updateTaskStatusDirectly('${t.id}', this.value)" class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 rounded-lg px-2.5 py-1 outline-none">
-              ${getStatusOptions(t.status)}
-            </select>
-          </td>
-          <td class="py-3.5 px-4">
-            <div class="flex items-center gap-2">
-              <div class="w-16 bg-slate-100 dark:bg-slate-950 rounded-full h-1.5 border border-slate-200 dark:border-slate-800 overflow-hidden">
-                <div class="bg-emerald-500 h-1.5 rounded-full" style="width: ${t.progress || 0}%"></div>
-              </div>
-              <span class="text-xs text-slate-600 dark:text-slate-400 font-mono">${t.progress || 0}%</span>
-            </div>
-          </td>
-          <td class="py-3.5 px-4 text-xs text-slate-700 dark:text-slate-300">
-            <div class="flex items-center gap-1.5 ${isOverdue ? 'text-rose-600 dark:text-rose-400 font-medium' : ''}">
-              <span>${formatDate(t.startDate)} – ${formatDate(t.endDate)}</span>
-              ${isOverdue ? '<i class="fa-solid fa-triangle-exclamation text-rose-500 text-[10px]" title="Überfällig"></i>' : ''}
-            </div>
-          </td>
-          <td class="py-3.5 px-4 text-xs">
-            ${preds.length
-              ? `<div class="space-y-1 max-w-[220px]">${preds.map(p => getDependencyChip(p, t, true)).join('')}</div>`
-              : '<span class="text-slate-400 dark:text-slate-600">-</span>'}
-          </td>
-          <td class="py-3.5 px-4">
-            <div class="text-xs text-slate-700 dark:text-slate-300 flex items-center gap-1.5 max-w-xs truncate">
-              ${t.nextAction ? `<i class="fa-solid fa-arrow-right text-emerald-500 dark:text-emerald-400 text-[10px]"></i> ${escapeHTML(t.nextAction)}` : '<span class="text-slate-400 dark:text-slate-600">-</span>'}
-            </div>
-          </td>
-          <td class="py-3.5 px-4 text-right">
-            <div class="flex items-center justify-end gap-1.5">
-              <button onclick="editTask('${t.id}')" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-emerald-500 transition" title="Bearbeiten">
-                <i class="fa-solid fa-pen text-xs"></i>
-              </button>
-              <button onclick="deleteTask('${t.id}')" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-rose-500 transition" title="Löschen">
-                <i class="fa-solid fa-trash-can text-xs"></i>
-              </button>
-            </div>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      }
-    }
-
-    function updateGanttToolbar(filtered) {
-      const n = getConflictCount();
-      document.getElementById('btnResolveConflicts').classList.toggle('hidden', n === 0);
-      document.getElementById('conflictCountLabel').innerText = `${n} Konflikt${n === 1 ? '' : 'e'}`;
-
-      const keys = groupBy === 'none' ? [] : buildGroups(filtered).map(g => g.key);
-      const allCollapsed = keys.length > 0 && keys.every(k => isGroupCollapsed(k));
-      document.getElementById('btnToggleAllGroups').classList.toggle('hidden', keys.length === 0);
-      document.getElementById('btnToggleAllGroupsLabel').innerText = allCollapsed ? 'Alle aufklappen' : 'Alle zuklappen';
-    }
-
-    function render() {
-      populateGroupControls();
-      const filtered = getFilteredTasks();
-      updateMetrics();
-      updateGanttToolbar(filtered);
-
-      if (currentView === 'gantt') {
-        renderGantt(filtered);
-      } else if (currentView === 'kanban') {
-        renderKanban(filtered);
-      } else if (currentView === 'table') {
-        renderTable(filtered);
-      }
-    }
-
-    function sortTable(column) {
-      if (sortColumn === column) {
-        sortAsc = !sortAsc;
-      } else {
-        sortColumn = column;
-        sortAsc = true;
-      }
-
-      ['title', 'phase', 'priority', 'status', 'progress', 'startDate'].forEach(col => {
-        const icon = document.getElementById(`sortIcon_${col}`);
-        if (icon) {
-          if (col === sortColumn) {
-            icon.className = sortAsc ? 'fa-solid fa-sort-up ml-1 text-emerald-500' : 'fa-solid fa-sort-down ml-1 text-emerald-500';
-          } else {
-            icon.className = 'fa-solid fa-sort ml-1 text-slate-300 dark:text-slate-600';
-          }
-        }
-      });
-      render();
-    }
-
-    // Drag & Drop
-    function handleDragStart(e, id) {
-      draggedTaskId = id;
-      e.dataTransfer.effectAllowed = 'move';
-      setTimeout(() => {
-        const el = document.getElementById(`card-${id}`);
-        if (el) el.classList.add('dragging');
-      }, 0);
-    }
-
-    function handleDragEnd(e) {
-      const el = document.getElementById(`card-${draggedTaskId}`);
-      if (el) el.classList.remove('dragging');
-      draggedTaskId = null;
-      document.querySelectorAll('.kanban-column').forEach(c => c.classList.remove('drop-highlight'));
-    }
-
-    function handleDragOver(e) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      const col = e.currentTarget;
-      if (!col.classList.contains('drop-highlight')) {
-        col.classList.add('drop-highlight');
-      }
-    }
-
-    function handleDragLeave(e) {
-      e.currentTarget.classList.remove('drop-highlight');
-    }
-
-    function handleDrop(e, newStatus) {
-      e.preventDefault();
-      e.currentTarget.classList.remove('drop-highlight');
-      if (!draggedTaskId) return;
-
-      const taskIndex = tasks.findIndex(t => t.id === draggedTaskId);
-      if (taskIndex !== -1 && tasks[taskIndex].status !== newStatus) {
-        tasks[taskIndex].status = newStatus;
-        if (newStatus === 'Erledigt') tasks[taskIndex].progress = 100;
-        if (newStatus === 'Offen' && tasks[taskIndex].progress === 100) tasks[taskIndex].progress = 0;
-        saveTasks();
-        render();
-        showToast(`Status auf "${newStatus}" gesetzt`);
-      }
-    }
-
-    function updateTaskStatusDirectly(id, newStatus) {
-      const task = tasks.find(t => t.id === id);
-      if (task) {
-        task.status = newStatus;
-        if (newStatus === 'Erledigt') task.progress = 100;
-        if (newStatus === 'Offen' && task.progress === 100) task.progress = 0;
-        saveTasks();
-        render();
-        showToast(`Status aktualisiert: ${newStatus}`);
-      }
-    }
-
-    function updateProgressDisplay(val) {
-      document.getElementById('progressValueText').innerText = `${val}%`;
-    }
-
-    function syncStatusProgress() {
-      const status = document.getElementById('taskStatus').value;
-      const progressInput = document.getElementById('taskProgress');
-      if (status === 'Erledigt') {
-        progressInput.value = 100;
-      } else if (status === 'Offen' && progressInput.value == 100) {
-        progressInput.value = 0;
-      }
-      updateProgressDisplay(progressInput.value);
-    }
-
-    // Checkbox-Liste aller möglichen Vorgänger, nach Gruppe sortiert.
-    // Nachfolger der Aufgabe sind gesperrt (würde einen Kreis erzeugen).
-    function populatePredecessorList(currentId, selectedIds = []) {
-      const container = document.getElementById('taskPredecessorList');
-      const blocked = currentId ? getDescendants(currentId) : new Set();
-      container.innerHTML = '';
-
-      buildGroups(tasks, 'group').forEach(group => {
-        const candidates = group.tasks.filter(t => t.id !== currentId);
-        if (!candidates.length) return;
-        const head = document.createElement('div');
-        head.className = 'px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider bg-slate-50 dark:bg-slate-950/60 sticky top-0';
-        head.style.color = getGroupColor(group.key);
-        head.innerText = group.key;
-        container.appendChild(head);
-
-        candidates.forEach(t => {
-          const isBlocked = blocked.has(t.id);
-          const label = document.createElement('label');
-          label.className = `flex items-center gap-2 px-2.5 py-1.5 ${isBlocked ? 'opacity-45 cursor-not-allowed' : 'cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-950/30'}`;
-          label.title = isBlocked ? 'Nicht möglich: Diese Aufgabe hängt bereits von der aktuellen Aufgabe ab (Kreis).' : '';
-          label.innerHTML = `
-            <input type="checkbox" value="${t.id}" ${selectedIds.includes(t.id) ? 'checked' : ''} ${isBlocked ? 'disabled' : ''} onchange="updatePredecessorCount()" class="accent-emerald-600 flex-shrink-0" />
-            <span class="flex-1 truncate text-slate-800 dark:text-slate-200">${escapeHTML(t.title)}</span>
-            <span class="text-[10px] text-slate-400 flex-shrink-0">${escapeHTML(t.status)} · Ende ${formatDate(t.endDate)}</span>`;
-          container.appendChild(label);
-        });
-      });
-
-      if (!container.children.length) {
-        container.innerHTML = '<div class="px-2.5 py-2 text-slate-400">Noch keine anderen Aufgaben vorhanden.</div>';
-      }
-      updatePredecessorCount();
-    }
-
-    function getSelectedPredecessors() {
-      return [...document.querySelectorAll('#taskPredecessorList input[type="checkbox"]:checked')].map(cb => cb.value);
-    }
-
-    function updatePredecessorCount() {
-      const n = getSelectedPredecessors().length;
-      document.getElementById('predecessorCount').innerText = n ? `(${n} gewählt)` : '';
-    }
-
-    function clearPredecessorSelection() {
-      document.querySelectorAll('#taskPredecessorList input[type="checkbox"]').forEach(cb => { cb.checked = false; });
-      updatePredecessorCount();
-    }
-
-    function openTaskModal(isEdit = false) {
-      const modal = document.getElementById('taskModal');
-      const title = document.getElementById('modalTitle');
-      if (!isEdit) {
-        document.getElementById('taskForm').reset();
-        document.getElementById('taskId').value = '';
-        document.getElementById('taskStartDate').value = toISO(new Date());
-        document.getElementById('taskEndDate').value = addDays(5);
-        document.getElementById('taskProgress').value = 0;
-        updateProgressDisplay(0);
-        document.getElementById('taskGroup').value = '';
-        document.getElementById('taskOwner').value = '';
-        document.getElementById('taskMilestone').checked = false;
-        populatePredecessorList('');
-        title.innerHTML = '<i class="fa-solid fa-plus text-emerald-500"></i> Neue Aufgabe erstellen';
-      }
-      modal.classList.remove('hidden');
-    }
-
-    function closeTaskModal() {
-      document.getElementById('taskModal').classList.add('hidden');
-    }
-
-    function editTask(id) {
-      const task = tasks.find(t => t.id === id);
-      if (!task) return;
-
-      populatePredecessorList(task.id, task.dependsOn);
-
-      document.getElementById('taskId').value = task.id;
-      document.getElementById('taskTitle').value = task.title || '';
-      document.getElementById('taskGroup').value = task.group || '';
-      document.getElementById('taskOwner').value = task.owner || '';
-      document.getElementById('taskMilestone').checked = !!task.milestone;
-      document.getElementById('taskPhase').value = task.phase || '';
-      document.getElementById('taskPriority').value = task.priority || 'Mittel';
-      document.getElementById('taskStatus').value = task.status || 'Offen';
-      document.getElementById('taskProgress').value = task.progress || 0;
-      updateProgressDisplay(task.progress || 0);
-
-      document.getElementById('taskStartDate').value = task.startDate || toISO(new Date());
-      document.getElementById('taskEndDate').value = task.endDate || task.deadline || addDays(5);
-
-      document.getElementById('taskNextAction').value = task.nextAction || '';
-      document.getElementById('taskNotes').value = task.notes || '';
-
-      document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-emerald-500"></i> Aufgabe bearbeiten';
-      document.getElementById('taskModal').classList.remove('hidden');
-    }
-
-    function deleteTask(id) {
-      const task = tasks.find(t => t.id === id);
-      const name = task ? task.title : 'Aufgabe';
-
-      tasks.forEach(t => {
-        t.dependsOn = t.dependsOn.filter(pid => pid !== id);
-      });
-
-      tasks = tasks.filter(t => t.id !== id);
-      saveTasks();
-      render();
-      showToast(`"${name}" wurde gelöscht.`);
-    }
-
-    function handleTaskSubmit(e) {
-      e.preventDefault();
-      const id = document.getElementById('taskId').value;
-      const title = document.getElementById('taskTitle').value.trim();
-      const group = document.getElementById('taskGroup').value.trim();
-      const owner = document.getElementById('taskOwner').value.trim();
-      const milestone = document.getElementById('taskMilestone').checked;
-      const dependsOn = getSelectedPredecessors();
-      const phase = document.getElementById('taskPhase').value;
-      const priority = document.getElementById('taskPriority').value;
-      const status = document.getElementById('taskStatus').value;
-      const progress = parseInt(document.getElementById('taskProgress').value, 10) || 0;
-      const startDate = document.getElementById('taskStartDate').value;
-      const endDate = document.getElementById('taskEndDate').value;
-      const nextAction = document.getElementById('taskNextAction').value.trim();
-      const notes = document.getElementById('taskNotes').value.trim();
-
-      let saved = null;
-      if (id) {
-        const index = tasks.findIndex(t => t.id === id);
-        if (index !== -1) {
-          tasks[index] = { 
-            ...tasks[index], 
-            title, group, owner, milestone, dependsOn, phase, priority, status, progress, startDate, endDate, nextAction, notes 
-          };
-          saved = tasks[index];
-        }
-      } else {
-        saved = {
-          id: 't-' + Date.now(),
-          title, group, owner, milestone, dependsOn, phase, priority, status, progress, startDate, endDate, nextAction, notes
-        };
-        tasks.push(saved);
-      }
-
-      if (saved) {
-        // Ende -> Anfang: nicht vor dem Ende der Vorgänger beginnen, Nachfolger mitziehen
-        const shifted = shiftAfterPredecessors(saved);
-        cascadeDependentTasks(saved.id);
-        const msg = id ? 'Aufgabe aktualisiert' : 'Neue Aufgabe hinzugefügt';
-        showToast(shifted ? `${msg} – Start auf ${formatDate(saved.startDate)} verschoben (nach Vorgängern)` : msg);
-      }
-
-      saveTasks();
-      closeTaskModal();
-      render();
-    }
-
-    function toggleMenu() {
-      const menu = document.getElementById('dropdownMenu');
-      menu.classList.toggle('hidden');
-    }
-
-    window.onclick = function(event) {
-      if (!event.target.closest('#menuButton') && !event.target.closest('#dropdownMenu')) {
-        const menu = document.getElementById('dropdownMenu');
-        if (menu && !menu.classList.contains('hidden')) {
-          menu.classList.add('hidden');
-        }
-      }
-    };
-
-    function exportJSON() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tasks, null, 2));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `${currentWorkspace.projectName}_backup_${new Date().toISOString().split('T')[0]}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-      showToast(`JSON-Export für ${currentWorkspace.projectName} heruntergeladen`);
-    }
-
-    function exportCSV() {
-      if (tasks.length === 0) {
-        showToast('Keine Daten zum Exportieren vorhanden', 'error');
-        return;
-      }
-      const headers = ['ID', 'Titel', 'Gruppe', 'Abhaengig_von', 'Phase', 'Prioritaet', 'Status', 'Fortschritt_Prozent', 'Startdatum', 'Enddatum', 'Naechster_Schritt', 'Notizen'];
-      const rows = tasks.map(t => [
-        t.id,
-        `"${(t.title || '').replace(/"/g, '""')}"`,
-        `"${(t.group || '').replace(/"/g, '""')}"`,
-        `"${(t.dependsOn || []).join(',')}"`,
-        `"${(t.phase || '').replace(/"/g, '""')}"`,
-        `"${(t.priority || '').replace(/"/g, '""')}"`,
-        `"${(t.status || '').replace(/"/g, '""')}"`,
-        t.progress || 0,
-        `"${t.startDate || ''}"`,
-        `"${t.endDate || ''}"`,
-        `"${(t.nextAction || '').replace(/"/g, '""')}"`,
-        `"${(t.notes || '').replace(/"/g, '""')}"`
-      ]);
-
-      const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(';'), ...rows.map(e => e.join(';'))].join('\n');
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", encodeURI(csvContent));
-      downloadAnchor.setAttribute("download", `${currentWorkspace.projectName}_aufgaben_${new Date().toISOString().split('T')[0]}.csv`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-      showToast('CSV-Export heruntergeladen');
-    }
-
-    function buildBaseSystemPrompt(customCommand = '') {
-      const todayISO = toISO(new Date());
-      const baseInstructions = `Du bist ein spezialisierter Assistent für Projektmanagement, Kanban und 2D/3D Gantt-Charts.
-Erstelle für jede Aufgabe ausschließlich ein valides JSON-Array ohne umschließenden Markdown-Text oder Begrüßung.
-
-FORMAT-VORGABEN:
-- "title": Kurzer prägnanter Aufgabentitel (String)
-- "group": Gruppe / Baugruppe / Arbeitspaket, zu der die Aufgabe gehört (String, z. B. "FG14 Klopfer")
-- "depends_on": Optional Vorgänger-Aufgabe(n) als Name oder ID – String oder Array von Strings. Die Aufgabe startet erst nach dem Ende aller Vorgänger (Ende → Anfang)
-- "category": Genau einer der folgenden Werte: "Konzept" | "Vorbereitung" | "Umsetzung" | "Schnittstellen" | "Inbetriebnahme" | "Doku"
-- "priority": Genau einer der Werte: "high" | "medium" | "low" (oder "Hoch" | "Mittel" | "Niedrig")
-- "status": Genau einer der Werte: "todo" | "in_progress" | "blocked" | "done" (oder "Offen" | "In Arbeit" | "Blockiert" | "Erledigt")
-- "progress": Ganzzahl 0 bis 100
-- "startDate": Datum im Format "YYYY-MM-DD" (Standard: heute = ${todayISO})
-- "endDate": Zieldatum im Format "YYYY-MM-DD"
-- "next_step": Konkreter, nächster auszuführender Arbeitsschritt
-- "notes": Wichtige Details, Blocker-Gründe oder Spezifikationen`;
-
-      if (customCommand && customCommand.trim().length > 0) {
-        return `${baseInstructions}
-
-AUFGABENBESCHREIBUNG / BENUTZERBEFEHL:
-"${customCommand.trim()}"
-
-Erzeuge dafür nun das passende JSON-Objekt im definierten Format.`;
-      }
-
-      return baseInstructions;
-    }
-
-    function updateDynamicPromptText() {
-      const customCmd = document.getElementById('aiCustomCommandInput').value;
-      const fullPrompt = buildBaseSystemPrompt(customCmd);
-      const previewArea = document.getElementById('aiPromptPreviewArea');
-      previewArea.value = fullPrompt;
-      document.getElementById('promptCharCount').innerText = `${fullPrompt.length} Zeichen`;
-    }
-
-    function clearCustomCommand() {
-      document.getElementById('aiCustomCommandInput').value = '';
-      updateDynamicPromptText();
-    }
-
-    function copySystemPromptToClipboard() {
-      const previewArea = document.getElementById('aiPromptPreviewArea');
-      previewArea.select();
-      previewArea.setSelectionRange(0, 99999);
-
-      try {
-        document.execCommand('copy');
-        const btn = document.getElementById('btnCopyPrompt');
-        btn.innerHTML = '<i class="fa-solid fa-check text-emerald-300"></i> Kopiert!';
-        btn.classList.remove('bg-indigo-600');
-        btn.classList.add('bg-emerald-600');
-        showToast('KI-Prompt in Zwischenablage kopiert');
-        setTimeout(() => {
-          btn.innerHTML = '<i class="fa-regular fa-copy"></i> <span>Prompt kopieren</span>';
-          btn.classList.add('bg-indigo-600');
-          btn.classList.remove('bg-emerald-600');
-        }, 2200);
-      } catch (err) {
-        showToast('Fehler beim Kopieren in Zwischenablage', 'error');
-      }
-    }
-
-    function pasteSampleToInput() {
-      const sample = [
-        {
-          "title": "FG14 Schublade Klopfer programmieren",
-          "group": "FG14 Klopfer",
-          "category": "Umsetzung",
-          "priority": "high",
-          "status": "todo",
-          "progress": 0,
-          "startDate": toISO(new Date()),
-          "endDate": addDays(4),
-          "next_step": "Zylinder-Ansteuerung in SPS schreiben",
-          "notes": "Voraussetzung für Testlauf"
-        },
-        {
-          "title": "Klopfer-Zyklus testen",
-          "group": "FG14 Klopfer",
-          "category": "Inbetriebnahme",
-          "priority": "high",
-          "status": "todo",
-          "depends_on": ["FG14 Schublade Klopfer programmieren"],
-          "progress": 0,
-          "startDate": addDays(5),
-          "endDate": addDays(9),
-          "next_step": "Endlagensensorik und Taktzeit messen",
-          "notes": "Startet unmittelbar nach Abschluss der Klopfer-Programmierung"
-        }
-      ];
-      document.getElementById('aiJsonInput').value = JSON.stringify(sample, null, 2);
-    }
-
-    function openAiImportModal() {
-      updateDynamicPromptText();
-      document.getElementById('aiImportModal').classList.remove('hidden');
-    }
-
-    function closeAiImportModal() {
-      document.getElementById('aiImportModal').classList.add('hidden');
-    }
-
-    function normalizePriority(val) {
-      if (!val) return 'Mittel';
-      const s = String(val).toLowerCase().trim();
-      if (s === 'high' || s === 'hoch') return 'Hoch';
-      if (s === 'low' || s === 'niedrig' || s === 'tief') return 'Niedrig';
-      return 'Mittel';
-    }
-
-    function normalizeStatus(val) {
-      if (!val) return 'Offen';
-      const s = String(val).toLowerCase().trim();
-      if (s === 'in_progress' || s === 'in progress' || s === 'in arbeit' || s === 'progress') return 'In Arbeit';
-      if (s === 'blocked' || s === 'blockiert' || s === 'block') return 'Blockiert';
-      if (s === 'testing' || s === 'in_test' || s === 'im testen' || s === 'test') return 'Im Testen';
-      if (s === 'cancelled' || s === 'canceled' || s === 'abgebrochen') return 'Abgebrochen';
-      if (s === 'done' || s === 'erledigt' || s === 'completed' || s === 'finished') return 'Erledigt';
-      return 'Offen';
-    }
-
-    function normalizeCategory(val) {
-      if (!val) return 'Konzept';
-      const s = String(val).trim();
-      const valid = ['Konzept', 'Vorbereitung', 'Umsetzung', 'Schnittstellen', 'Inbetriebnahme', 'Doku'];
-      const match = valid.find(v => v.toLowerCase() === s.toLowerCase());
-      return match || 'Schnittstellen';
-    }
-
-    function processAiJsonImport() {
-      let rawText = document.getElementById('aiJsonInput').value.trim();
-      if (!rawText) {
-        showToast('Bitte Text oder JSON in Schritt 2 einfügen', 'error');
-        return;
-      }
-
-      if (rawText.startsWith('```')) {
-        rawText = rawText.replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/i, '').trim();
-      }
-
-      try {
-        let parsed = JSON.parse(rawText);
-        if (!Array.isArray(parsed)) {
-          parsed = [parsed];
-        }
-
-        let addedCount = 0;
-        const newlyAdded = [];
-
-        parsed.forEach(item => {
-          const title = item.title || item.name || item.aufgabe || item.arbeitspaket;
-          if (!title) return;
-
-          const normStatus = normalizeStatus(item.status);
-          const normPriority = normalizePriority(item.priority || item.prio);
-          const normPhase = normalizeCategory(item.category || item.phase || item.kategorie);
-
-          let progressVal = typeof item.progress === 'number' ? Math.max(0, Math.min(100, item.progress)) : null;
-          if (progressVal === null) {
-            if (normStatus === 'Erledigt') progressVal = 100;
-            else if (normStatus === 'In Arbeit') progressVal = 50;
-            else if (normStatus === 'Blockiert') progressVal = 20;
-            else progressVal = 0;
-          }
-
-          const newTask = {
-            id: 't-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
-            title: title.trim(),
-            group: String(item.group || item.gruppe || '').trim(),
-            dependsOn: normalizeDeps(item.depends_on || item.dependsOn || item.vorgaenger),
-            phase: normPhase,
-            priority: normPriority,
-            status: normStatus,
-            progress: progressVal,
-            startDate: item.startDate || item.start || toISO(new Date()),
-            endDate: item.endDate || item.deadline || item.ende || addDays(7),
-            nextAction: item.next_step || item.nextAction || item.naechsterSchritt || item.action || '',
-            notes: item.notes || item.notizen || item.details || ''
-          };
-
-          tasks.push(newTask);
-          newlyAdded.push(newTask);
-          addedCount++;
-        });
-
-        // Resolve title-based dependency names to IDs
-        newlyAdded.forEach(task => {
-          task.dependsOn = [...new Set(task.dependsOn.map(ref => {
-            const matchedParent = tasks.find(p => p.id !== task.id && (p.id === ref || p.title.toLowerCase() === ref.toLowerCase()));
-            return matchedParent ? matchedParent.id : null;
-          }).filter(pid => pid && !wouldCauseCircularDependency(pid, task.id)))];
-        });
-        newlyAdded.forEach(task => {
-          shiftAfterPredecessors(task);
-          cascadeDependentTasks(task.id);
-        });
-
-        if (addedCount > 0) {
-          saveTasks();
-          render();
-          closeAiImportModal();
-          showToast(`${addedCount} Aufgabe(n) erfolgreich ins Board übernommen`);
-        } else {
-          showToast('Keine gültige Aufgabenstruktur gefunden', 'error');
-        }
-      } catch (err) {
-        showToast('JSON-Syntax fehlerhaft. Bitte JSON prüfen.', 'error');
-      }
-    }
-
-    function importJSON(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const imported = JSON.parse(e.target.result);
-          if (Array.isArray(imported)) {
-            tasks = imported.map(normalizeTask);
-            dropDanglingDeps();
-            saveTasks();
-            render();
-            showToast(`${imported.length} Aufgaben erfolgreich importiert`);
-            if (currentView === 'gantt') setTimeout(scrollGanttToToday, 60);
-          } else {
-            showToast('Ungültiges Dateiformat', 'error');
-          }
-        } catch (err) {
-          showToast('Fehler beim Einlesen der JSON-Datei', 'error');
-        }
-      };
-      reader.readAsText(file);
-      event.target.value = '';
-    }
-
-    function resetToSampleData() {
-      tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS)).map(normalizeTask);
-      saveTasks();
-      render();
-      showToast('Demodaten wiederhergestellt');
-    }
-
-    window.onload = function() {
-      loadTasks();
-    };
-  </script>
+  <script src="js/icons.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/dependencies.js"></script>
+  <script src="js/gantt.js"></script>
+  <script src="js/views.js"></script>
+  <script src="js/dialogs.js"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>
