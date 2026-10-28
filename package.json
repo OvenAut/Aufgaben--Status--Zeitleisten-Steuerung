@@ -1,0 +1,23 @@
+{
+  "name": "projekt-status-board",
+  "version": "1.0.0",
+  "description": "Aufgaben-, Status- und Zeitleisten-Steuerung (Gantt, Kanban, Tabelle) für Automatisierungsprojekte – als lokale Node-App mit Änderungsprotokoll",
+  "private": true,
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node server/server.js --no-browser",
+    "build:css": "tailwindcss -c tailwind.config.js -i styles/tailwind.css -o public/css/tailwind.css --minify",
+    "watch:css": "tailwindcss -c tailwind.config.js -i styles/tailwind.css -o public/css/tailwind.css --watch",
+    "build:icons": "node tools/build-icons.mjs",
+    "build:exe": "npm run build:css && node tools/build-exe.mjs --target win-x64",
+    "build:exe:linux": "npm run build:css && node tools/build-exe.mjs --target linux-x64"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "postject": "1.0.0-alpha.6",
+    "tailwindcss": "3.4.17"
+  }
+}

@@ -1,5 +1,7 @@
-tailwind.config = {
+/** Tailwind wird lokal gebaut (npm run build:css) – kein CDN, die App läuft auch offline. */
+module.exports = {
   darkMode: 'class',
+  content: ['./public/**/*.html', './public/js/**/*.js'],
   theme: {
     extend: {
       colors: {

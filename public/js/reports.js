@@ -5,6 +5,15 @@
 
 let reportType = 'daily';
 let lastReport = null;
+let reportRenderSeq = 0;
+
+// Feldnamen für das Änderungsprotokoll (vom Server in daten/<Projekt>/history.jsonl geschrieben)
+const HISTORY_FIELD_LABELS = {
+  title: 'Titel', status: 'Status', progress: 'Fortschritt', startDate: 'Start', endDate: 'Ende',
+  group: 'Gruppe', phase: 'Phase', priority: 'Priorität', owner: 'Verantwortlich', dependsOn: 'Vorgänger',
+  nextAction: 'Nächster Schritt', notes: 'Notizen', blockReason: 'Blockiergrund', waitingFor: 'Wartet auf',
+  milestone: 'Meilenstein', quick: 'Eingang'
+};
 
 const AUDIENCES = {
   team: 'das interne Projektteam (Technik, direkt und kompakt)',
@@ -89,11 +98,55 @@ function openDependencyLines(list) {
   return lines;
 }
 
+function describeHistoryChange(c) {
+  const label = HISTORY_FIELD_LABELS[c.field] || c.field;
+  const fmt = v => {
+    if (v === null || v === undefined || v === '') return '–';
+    if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return formatDate(v);
+    return String(v);
+  };
+  if (c.field === 'progress') return `${label} ${fmt(c.from)} → ${fmt(c.to)} %`;
+  if (['status', 'startDate', 'endDate', 'group', 'phase', 'priority', 'owner'].includes(c.field)) return `${label}: ${fmt(c.from)} → ${fmt(c.to)}`;
+  if (c.field === 'dependsOn') return `${label} geändert`;
+  if (c.field === 'quick') return c.to ? 'in den Eingang' : 'zugeordnet';
+  if (c.field === 'milestone') return c.to ? 'als Meilenstein markiert' : 'kein Meilenstein mehr';
+  if (HISTORY_FIELD_LABELS[c.field]) return `${label} überarbeitet`;
+  return null; // unbekannte Felder (z. B. Importfelder) nicht aufführen
+}
+
+// Änderungen je Aufgabe zusammenfassen: Uhrzeit(en) + was sich geändert hat
+function historySection(entries, type) {
+  const byTask = new Map();
+  entries.forEach(e => {
+    if (!byTask.has(e.taskId)) byTask.set(e.taskId, { title: e.title, entries: [] });
+    const item = byTask.get(e.taskId);
+    item.title = e.title || item.title;
+    item.entries.push(e);
+  });
+  const items = [...byTask.values()].map(({ title, entries: list }) => {
+    const times = list.map(e => new Date(e.ts));
+    const when = type === 'daily'
+      ? times.map(d => d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })).filter((v, i, a) => a.indexOf(v) === i).join(', ')
+      : [...new Set(times.map(d => d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })))].join(', ');
+    const actions = [];
+    list.forEach(e => {
+      if (e.action === 'erstellt') actions.push('angelegt');
+      else if (e.action === 'importiert') actions.push('importiert');
+      else if (e.action === 'gelöscht') actions.push('gelöscht');
+      else e.changes.forEach(c => { const d = describeHistoryChange(c); if (d) actions.push(d); });
+    });
+    // gleiche Felder mehrfach geändert -> nur erste/letzte Fassung nennen
+    const unique = [...new Set(actions)];
+    return { title, meta: [when, `${list.length} Speicherung${list.length === 1 ? '' : 'en'}`], notes: unique.length ? [unique.join(' · ')] : [] };
+  });
+  return { title: 'Änderungsprotokoll', icon: 'clock', tone: 'slate', items };
+}
+
 function byGroupThenEnd(a, b) {
   return (a.group || '~').localeCompare(b.group || '~') || (a.endDate || '').localeCompare(b.endDate || '');
 }
 
-function buildReport(type, refKey, list) {
+function buildReport(type, refKey, list, history) {
   const open = list.filter(t => !isClosed(t)).sort(byGroupThenEnd);
   const sections = [];
   let from;
@@ -125,6 +178,7 @@ function buildReport(type, refKey, list) {
       { title: `Fällig bis ${formatDate(nextKey)}`, icon: 'clock', tone: 'amber', items: dueSoon.map(t => reportLine(t)) },
       { title: 'Offene Abhängigkeiten', icon: 'link', tone: 'violet', items: openDependencyLines(open) }
     );
+    if (history) sections.splice(2, 0, historySection(history, 'daily'));
 
     return {
       type, title, range, from, to,
@@ -180,6 +234,7 @@ function buildReport(type, refKey, list) {
     { title: 'Offene Abhängigkeiten', icon: 'link', tone: 'violet', items: openDependencyLines(open) },
     { title: 'Eingang (noch nicht zugeordnet)', icon: 'inbox', tone: 'amber', items: inbox.map(t => reportLine(t)) }
   );
+  if (history) sections.push(historySection(history, 'weekly'));
 
   return {
     type, title, range, from, to,
@@ -351,29 +406,48 @@ function setReportDateToday() {
   renderReport();
 }
 
-function renderReport() {
+async function renderReport() {
+  const seq = ++reportRenderSeq;
   const key = document.getElementById('reportDate').value || dayKey(new Date());
   const list = document.getElementById('reportUseFilter').checked ? getFilteredTasks() : tasks;
-  lastReport = buildReport(reportType, key, list);
+
+  // Änderungsprotokoll gibt es nur mit dem lokalen Server (EXE / npm start)
+  let history = null;
+  if (SERVER_MODE) {
+    const from = reportType === 'weekly' ? weekStart(key) : key;
+    const to = reportType === 'weekly' ? shiftDay(from, 6) : key;
+    try {
+      const res = await fetch(apiUrl('history', { from, to }), { cache: 'no-store' });
+      if (res.ok) {
+        const ids = new Set(list.map(t => t.id));
+        const all = await res.json();
+        history = document.getElementById('reportUseFilter').checked ? all.filter(e => ids.has(e.taskId)) : all;
+      }
+    } catch (e) {}
+    if (seq !== reportRenderSeq) return; // inzwischen anderer Bericht gewählt
+  }
+
+  lastReport = buildReport(reportType, key, list, history);
   document.getElementById('reportRangeLabel').innerText = lastReport.range;
-  document.getElementById('reportPreview').innerHTML = reportToHTML(lastReport);
+  document.getElementById('reportPreview').innerHTML = reportToHTML(lastReport) + (SERVER_MODE ? '' : `
+    <p class="text-[11px] text-slate-400 dark:text-slate-500">Hinweis: Das Änderungsprotokoll mit Uhrzeiten steht zur Verfügung, wenn das Board über die App (EXE bzw. <code>npm start</code>) läuft.</p>`);
 }
 
 async function copyReportMarkdown() {
-  if (!lastReport) renderReport();
+  if (!lastReport) await renderReport();
   const ok = await copyToClipboard(reportToMarkdown(lastReport));
   showToast(ok ? `${lastReport.title} als Markdown kopiert` : 'Kopieren nicht möglich', ok ? 'success' : 'error');
 }
 
 async function copyReportPrompt(mode) {
-  if (!lastReport) renderReport();
+  if (!lastReport) await renderReport();
   const prompt = buildReportPrompt(mode, lastReport, reportToMarkdown(lastReport));
   const ok = await copyToClipboard(prompt);
   showToast(ok ? `KI-Prompt „${mode === 'evaluate' ? 'Auswerten' : 'Bericht verbessern'}“ kopiert – in ChatGPT / Claude / Gemini einfügen` : 'Kopieren nicht möglich', ok ? 'info' : 'error', { duration: 5000 });
 }
 
-function downloadReport() {
-  if (!lastReport) renderReport();
+async function downloadReport() {
+  if (!lastReport) await renderReport();
   const blob = new Blob([reportToMarkdown(lastReport)], { type: 'text/markdown;charset=utf-8' });
   const a = document.createElement('a');
   const suffix = lastReport.type === 'daily' ? lastReport.from : `KW${getWeekNumber(new Date(`${lastReport.from}T12:00:00`))}_${lastReport.from.slice(0, 4)}`;

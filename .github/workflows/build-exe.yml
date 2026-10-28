@@ -1,0 +1,59 @@
+# Baut die Windows-EXE auf einem echten Windows-Rechner, startet sie testweise
+# und stellt sie als Download (Artifact) bereit.
+name: Windows-EXE bauen
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'public/**'
+      - 'server/**'
+      - 'tools/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tailwind.config.js'
+      - 'styles/**'
+      - '.github/workflows/build-exe.yml'
+  workflow_dispatch:
+
+jobs:
+  windows-exe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: EXE bauen
+        run: npm run build:exe
+
+      - name: EXE starten und prüfen
+        shell: pwsh
+        run: |
+          $proc = Start-Process -FilePath dist\Projekt-Status-Board.exe -ArgumentList '--no-browser','--port','3210' -PassThru
+          Start-Sleep -Seconds 4
+          try {
+            $health = Invoke-RestMethod http://127.0.0.1:3210/api/health
+            if (-not $health.ok) { throw 'Health-Check fehlgeschlagen' }
+            $page = Invoke-WebRequest http://127.0.0.1:3210/ -UseBasicParsing
+            if ($page.StatusCode -ne 200) { throw 'Startseite nicht erreichbar' }
+            $body = '[{"id":"ci","title":"CI-Test","status":"Offen"}]'
+            Invoke-RestMethod -Method Put -ContentType 'application/json' -Body $body http://127.0.0.1:3210/api/projects/CI/tasks | Out-Null
+            $hist = Invoke-RestMethod http://127.0.0.1:3210/api/projects/CI/history
+            if ($hist.Count -lt 1) { throw 'Änderungsprotokoll leer' }
+            if (-not (Test-Path dist\daten\CI\tasks.json)) { throw 'daten-Ordner neben der EXE fehlt' }
+            Write-Host "OK: $($health.app) $($health.version), Daten in $($health.dataDir)"
+          } finally {
+            Stop-Process -Id $proc.Id -Force
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Projekt-Status-Board-Windows
+          path: dist/Projekt-Status-Board.exe
+          if-no-files-found: error

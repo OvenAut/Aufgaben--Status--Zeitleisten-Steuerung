@@ -60,10 +60,10 @@ for (const name of names) {
     failed++;
     continue;
   }
-  writeFileSync(join(root, 'assets/icons/lucide', `${name}.svg`), svg);
+  writeFileSync(join(root, 'public/assets/icons/lucide', `${name}.svg`), svg);
   console.log(`✓ ${name}`);
 }
-writeFileSync(join(root, 'assets/icons/lucide/LICENSE'), files.get('package/LICENSE'));
+writeFileSync(join(root, 'public/assets/icons/lucide/LICENSE'), files.get('package/LICENSE'));
 
 execFileSync(process.execPath, [join(root, 'tools/build-icons.mjs')], { stdio: 'inherit' });
 process.exit(failed ? 1 : 0);

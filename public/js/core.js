@@ -39,7 +39,16 @@ function toggleTheme() {
 }
 
 // Dynamic project workspace & storage key resolution based on pathname
+// Server-Modus: Die App läuft über den lokalen Node-Server (EXE bzw. npm start), Daten liegen in ./daten.
+// Beim Öffnen der HTML-Datei per Doppelklick (file://) wird weiterhin im Browser gespeichert.
+const SERVER_MODE = location.protocol === 'http:' || location.protocol === 'https:';
+const DEFAULT_SERVER_PROJECT = 'Hauptprojekt';
+
 function detectProjectWorkspace() {
+  if (SERVER_MODE) {
+    const projectName = (new URLSearchParams(location.search).get('projekt') || DEFAULT_SERVER_PROJECT).trim() || DEFAULT_SERVER_PROJECT;
+    return { projectName, filename: 'Server', storageKey: `project_board_server_${projectName}` };
+  }
   let rawPath = window.location.pathname || '';
   rawPath = rawPath.replace(/\\/g, '/');
   const segments = rawPath.split('/').filter(Boolean);
@@ -261,7 +270,11 @@ function initWorkspaceUI() {
 
   if (headerTitle) headerTitle.innerText = `Projekt: ${currentWorkspace.projectName}`;
   if (badgeName) badgeName.innerText = currentWorkspace.filename;
-  if (storageHint) storageHint.innerText = `Key: ${currentWorkspace.storageKey}`;
+  if (storageHint) {
+    storageHint.innerText = SERVER_MODE
+      ? `Speicher: daten/${currentWorkspace.projectName}/tasks.json · Änderungsprotokoll aktiv`
+      : `Key: ${currentWorkspace.storageKey} (nur in diesem Browser)`;
+  }
   if (dropdownTitle) dropdownTitle.innerText = `Workspace: ${currentWorkspace.projectName}`;
   document.title = `${currentWorkspace.projectName} - Board & Gantt (2D & 3D)`;
 }
@@ -290,22 +303,27 @@ function dropDanglingDeps() {
   tasks.forEach(t => { t.dependsOn = t.dependsOn.filter(id => ids.has(id) && id !== t.id); });
 }
 
-function loadTasks() {
+async function loadTasks() {
   initTheme();
   initWorkspaceUI();
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      tasks = JSON.parse(stored).map(normalizeTask);
-      dropDanglingDeps();
+    if (SERVER_MODE) {
+      await loadTasksFromServer();
     } else {
-      tasks = DEFAULT_TASKS.map(normalizeTask);
-      saveTasks();
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        tasks = JSON.parse(stored).map(normalizeTask);
+        dropDanglingDeps();
+      } else {
+        tasks = DEFAULT_TASKS.map(normalizeTask);
+        saveTasks();
+      }
     }
   } catch (e) {
     console.error('Fehler beim Laden:', e);
     tasks = DEFAULT_TASKS.map(normalizeTask);
   }
+  if (SERVER_MODE) loadProjectMenu();
 
   try {
     groupBy = localStorage.getItem(GROUPBY_KEY) || 'group';
@@ -480,12 +498,127 @@ function populateGroupControls() {
   phaseFilter.value = [...phaseFilter.options].some(o => o.value === currentPhase) ? currentPhase : 'ALL';
 }
 
-function saveTasks() {
+// reason: 'import' / 'reset' – der Server protokolliert dann "importiert" statt einzelner Feldänderungen
+function saveTasks(reason) {
   try {
+    // im Server-Modus nur Zwischenspeicher für den Fall, dass der Server nicht erreichbar ist
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
   } catch (e) {
-    showToast('Speicherfehler im Browser', 'error');
+    if (!SERVER_MODE) showToast('Speicherfehler im Browser', 'error');
   }
+  if (SERVER_MODE) pushTasksToServer(reason);
+}
+
+// -------------------------------------------------------------
+// SERVER (lokale Node-App)
+// -------------------------------------------------------------
+const SERVER_STAMP_FIELDS = ['createdAt', 'updatedAt', 'statusChangedAt', 'doneAt', 'blockedSince', 'prevStatus'];
+let serverSaveInFlight = false;
+let serverSavePending = false;
+let serverPendingReason = '';
+let serverOnline = null;
+
+function apiUrl(resource, params) {
+  const query = params ? `?${new URLSearchParams(params)}` : '';
+  return `/api/projects/${encodeURIComponent(currentWorkspace.projectName)}/${resource}${query}`;
+}
+
+async function loadTasksFromServer() {
+  try {
+    const res = await fetch(apiUrl('tasks'), { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    setServerStatus(true);
+    if (data.exists) {
+      tasks = data.tasks.map(normalizeTask);
+      dropDanglingDeps();
+    } else {
+      // neues Projekt: das Hauptprojekt startet mit Demodaten, weitere Projekte leer
+      tasks = currentWorkspace.projectName === DEFAULT_SERVER_PROJECT ? DEFAULT_TASKS.map(normalizeTask) : [];
+      saveTasks();
+    }
+  } catch (e) {
+    setServerStatus(false);
+    const cached = localStorage.getItem(STORAGE_KEY);
+    tasks = cached ? JSON.parse(cached).map(normalizeTask) : [];
+    showToast('Server nicht erreichbar – zuletzt bekannter Stand aus dem Browser geladen', 'error', { duration: 6000 });
+  }
+}
+
+// Speichert den kompletten Stand; der Server protokolliert die Unterschiede mit Zeitstempel
+async function pushTasksToServer(reason = '') {
+  if (serverSaveInFlight) {
+    serverSavePending = true;
+    serverPendingReason = reason || serverPendingReason;
+    return;
+  }
+  serverSaveInFlight = true;
+  try {
+    const body = JSON.stringify(tasks);
+    const res = await fetch(apiUrl('tasks', reason ? { reason } : undefined), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+      keepalive: body.length < 60000
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    // vom Server gesetzte Zeitstempel übernehmen
+    const byId = new Map(data.tasks.map(t => [t.id, t]));
+    tasks.forEach(t => {
+      const s = byId.get(t.id);
+      if (s) SERVER_STAMP_FIELDS.forEach(f => { if (s[f] !== undefined) t[f] = s[f]; });
+    });
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); } catch (e) {}
+    setServerStatus(true);
+  } catch (e) {
+    if (serverOnline !== false) showToast('Server nicht erreichbar – Änderung nur im Browser zwischengespeichert', 'error', { duration: 6000 });
+    setServerStatus(false);
+  } finally {
+    serverSaveInFlight = false;
+    if (serverSavePending) {
+      const pendingReason = serverPendingReason;
+      serverSavePending = false;
+      serverPendingReason = '';
+      pushTasksToServer(pendingReason);
+    }
+  }
+}
+
+function setServerStatus(online) {
+  serverOnline = online;
+  const badge = document.getElementById('workspaceBadge');
+  const name = document.getElementById('workspaceBadgeName');
+  if (!badge || !name) return;
+  name.innerText = online ? `Server · ${currentWorkspace.projectName}` : 'Server offline';
+  badge.title = online ? 'Gespeichert auf dem lokalen Server (mit Änderungsprotokoll)' : 'Lokaler Server nicht erreichbar – App (EXE) gestartet?';
+  badge.classList.toggle('text-rose-600', !online);
+  badge.classList.toggle('dark:text-rose-400', !online);
+  badge.classList.toggle('bg-rose-500/10', !online);
+  badge.classList.toggle('border-rose-500/30', !online);
+}
+
+async function loadProjectMenu() {
+  const container = document.getElementById('projectMenu');
+  if (!container) return;
+  container.classList.remove('hidden');
+  let projects = [];
+  try {
+    projects = await (await fetch('/api/projects', { cache: 'no-store' })).json();
+  } catch (e) {}
+  if (!projects.some(p => p.name === currentWorkspace.projectName)) projects.unshift({ name: currentWorkspace.projectName, tasks: tasks.length });
+  document.getElementById('projectMenuList').innerHTML = projects.map(p => `
+    <a href="?projekt=${encodeURIComponent(p.name)}" class="w-full text-left px-3.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5 ${p.name === currentWorkspace.projectName ? 'font-semibold text-emerald-700 dark:text-emerald-400' : ''}">
+      ${icon(p.name === currentWorkspace.projectName ? 'circle-check' : 'folder-open', 'w-4')}
+      <span class="truncate flex-1">${escapeHTML(p.name)}</span>
+      <span class="text-[10px] text-slate-400">${p.tasks}</span>
+    </a>`).join('');
+}
+
+function createProject() {
+  const name = (prompt('Name des neuen Projekts:') || '').trim();
+  if (!name) return;
+  location.href = `?projekt=${encodeURIComponent(name)}`;
 }
 
 // options: { duration, actionLabel, actionIcon, onAction } – z. B. für "Rückgängig"

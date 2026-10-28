@@ -4,10 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Projekt Status & Aufgaben Board (2D & 3D Gantt)</title>
-  <!-- Tailwind CSS via CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind CSS, lokal gebaut (npm run build:css) -->
+  <link rel="stylesheet" href="css/tailwind.css" />
+  <!-- Schriften lokal (Inter, JetBrains Mono) -->
+  <link rel="stylesheet" href="css/fonts.css" />
   <!-- Lucide Icons (lokal, siehe assets/icons/lucide + tools/build-icons.mjs) -->
-  <script src="js/tailwind.config.js"></script>
   <link rel="stylesheet" href="css/board.css" />
 </head>
 <body class="bg-slate-50 text-slate-800 dark:bg-[#030712] dark:text-slate-100 h-screen w-screen overflow-hidden flex flex-col antialiased selection:bg-emerald-500 selection:text-white">
@@ -92,9 +93,16 @@
           <button onclick="toggleMenu()" id="menuButton" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 transition" aria-label="Optionen">
             <svg class="icon px-0.5" aria-hidden="true"><use href="#i-ellipsis-vertical"></use></svg>
           </button>
-          <div id="dropdownMenu" class="hidden absolute right-0 mt-2 w-56 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 py-1.5 text-xs text-slate-700 dark:text-slate-300">
+          <div id="dropdownMenu" class="hidden absolute right-0 mt-2 w-64 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 py-1.5 text-xs text-slate-700 dark:text-slate-300">
             <div class="px-3 py-1.5 text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800" id="dropdownWorkspaceTitle">
               Workspace: default
+            </div>
+            <div id="projectMenu" class="hidden border-b border-slate-100 dark:border-slate-800 pb-1 mb-1">
+              <div class="px-3.5 pt-1.5 pb-1 text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">Projekte</div>
+              <div id="projectMenuList" class="max-h-48 overflow-y-auto custom-scroll"></div>
+              <button onclick="createProject()" class="w-full text-left px-3.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5 text-emerald-700 dark:text-emerald-400">
+                <svg class="icon w-4" aria-hidden="true"><use href="#i-plus"></use></svg> Neues Projekt …
+              </button>
             </div>
             <button onclick="exportJSON()" class="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5">
               <svg class="icon text-teal-600 dark:text-teal-400 w-4" aria-hidden="true"><use href="#i-file-code"></use></svg> Export als JSON

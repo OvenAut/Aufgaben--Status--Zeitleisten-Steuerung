@@ -10,8 +10,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const iconDir = join(root, 'assets/icons/lucide');
-const outFile = join(root, 'js/icons.js');
+const iconDir = join(root, 'public/assets/icons/lucide');
+const outFile = join(root, 'public/js/icons.js');
 
 const files = readdirSync(iconDir).filter(f => f.endsWith('.svg')).sort();
 const symbols = files.map(file => {
@@ -47,4 +47,4 @@ function setIcon(el, name, cls = '') {
 }
 `;
 writeFileSync(outFile, out);
-console.log(`js/icons.js geschrieben (${files.length} Icons)`);
+console.log(`public/js/icons.js geschrieben (${files.length} Icons)`);

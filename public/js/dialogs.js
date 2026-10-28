@@ -462,7 +462,7 @@ function importJSON(event) {
       if (Array.isArray(imported)) {
         tasks = imported.map(normalizeTask);
         dropDanglingDeps();
-        saveTasks();
+        saveTasks('import');
         render();
         showToast(`${imported.length} Aufgaben erfolgreich importiert`);
         if (currentView === 'gantt') setTimeout(scrollGanttToToday, 60);
@@ -479,7 +479,7 @@ function importJSON(event) {
 
 function resetToSampleData() {
   tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS)).map(normalizeTask);
-  saveTasks();
+  saveTasks('reset');
   render();
   showToast('Demodaten wiederhergestellt');
 }

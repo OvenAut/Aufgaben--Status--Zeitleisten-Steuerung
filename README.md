@@ -1,75 +1,121 @@
 # Projekt Status & Aufgaben Board
 
-Aufgaben-, Status- und Zeitleisten-Steuerung mit Gantt-Chart, Kanban und Tabelle.
-Läuft komplett im Browser – einfach `projekt_status_aufgaben_board.html` öffnen (Doppelklick genügt, kein Server nötig).
+Aufgaben-, Status- und Zeitleisten-Steuerung für Automatisierungsprojekte – Gantt-Chart, Kanban und Tabelle.
+Läuft als **Windows-Programm** (lokaler Server + Browser) und protokolliert jede Änderung mit Zeitstempel.
+
+## Benutzung (Windows)
+
+1. `Projekt-Status-Board.exe` in einen eigenen Ordner legen, z. B. `Dokumente\Projekt-Board\`
+   (nicht nach `C:\Programme`, dort darf nicht geschrieben werden).
+2. Doppelklick – ein Konsolenfenster öffnet sich und das Board erscheint im Standardbrowser
+   unter `http://127.0.0.1:3210/`.
+3. Das Konsolenfenster offen lassen; schließen beendet das Programm.
+
+Beim ersten Start fragt Windows SmartScreen nach, weil die EXE nicht signiert ist:
+„Weitere Informationen“ → „Trotzdem ausführen“.
+
+Die Daten liegen im Ordner **`daten`** neben der EXE:
+
+```
+daten/
+  Hauptprojekt/
+    tasks.json            aktueller Stand
+    history.jsonl         Änderungsprotokoll (jede Änderung mit Uhrzeit)
+    backups/tasks_JJJJ-MM-TT.json   Stand vom Tagesbeginn
+  Linie 2/ …              weitere Projekte (Menü ⋮ → „Neues Projekt …“)
+```
+
+Ist der Ordner neben der EXE nicht beschreibbar, wird `%APPDATA%\Projekt-Status-Board\daten` verwendet
+(der tatsächliche Pfad steht im Konsolenfenster).
+
+**Umzug von der HTML-Version:** In der alten Version Menü ⋮ → „Export als JSON“, in der App
+Menü ⋮ → „Backup importieren“. Der Import wird im Protokoll als „importiert“ vermerkt.
+
+Startoptionen: `Projekt-Status-Board.exe --port 3300 --no-browser --data D:\Projektdaten`
 
 ## Funktionen
 
-- **Gantt-Chart** mit stufenlosem Zoom (Lupen-Knöpfe oder Strg/⌘ + Mausrad, Voreinstellungen Tage … Jahr)
+- **Gantt-Chart** mit stufenlosem Zoom (Lupen-Knöpfe oder Strg/⌘ + Mausrad, Tage … Jahr)
 - **Gruppen** (Gruppe / Phase / Status) mit einklappbaren Sammelbalken, Drag & Drop zwischen Gruppen
-- **Abhängigkeiten** Ende → Anfang, mehrere Vorgänger je Aufgabe, farbige Verbindungen
-  (freigegeben / wartet / Konflikt), Konflikte automatisch auflösbar
-- **Kanban** und **Tabelle**, Filter, Suche, Meilensteine, Verantwortliche
-- Export/Import als JSON, CSV-Export, KI-Schnellimport per Prompt-Vorlage
+- **Abhängigkeiten** Ende → Anfang, mehrere Vorgänger, farbige Verbindungen (freigegeben / wartet / Konflikt)
+- **Schnellerfassung** oben: nur Titel + Beschreibung, Zuordnung später („Eingang“)
+- **KI-Rechtschreibprüfung**: Prompt + JSON in die Zwischenablage, Antwort der KI per „KI-Korrektur“ zurück
+- **Tages- und Wochenbericht** mit Änderungsprotokoll, KI-Prompts „Bericht verbessern“ und „Auswerten“
+- Kanban, Tabelle, Filter, Meilensteine, Verantwortliche, Import/Export (JSON, CSV), KI-Schnellimport
 
-Die Daten liegen im `localStorage` des Browsers. Der Speicherschlüssel wird aus dem
-Dateinamen der HTML-Datei abgeleitet – eine Kopie mit anderem Namen ist ein eigenes Projekt.
+## Ohne Installation
 
-## Aufbau
+`public/projekt_status_aufgaben_board.html` lässt sich auch direkt per Doppelklick öffnen.
+Dann wird nur im Browser (`localStorage`) gespeichert – ohne Änderungsprotokoll und ohne Projekte-Ordner.
 
-```
-projekt_status_aufgaben_board.html   Markup
-css/board.css                        eigene Styles (inkl. .icon)
-js/tailwind.config.js                Tailwind-Konfiguration
-js/icons.js                          Lucide-Icon-Sprite (automatisch erzeugt)
-js/core.js                           Zustand, Laden/Speichern, Gruppierung, Filter, Badges
-js/dependencies.js                   Abhängigkeiten, Verknüpfen, Hervorhebung, Zeilen-Drag & Drop
-js/gantt.js                          Gantt-Zeichnung, Verbindungspfeile, Zoom
-js/views.js                          Ansichtswechsel, Kanban, Tabelle
-js/dialogs.js                        Aufgaben-Formular, Menü, Import/Export, KI-Import
-js/main.js                           Start
-assets/icons/lucide/                 heruntergeladene Lucide-SVGs + Lizenz
-tools/                               Hilfsskripte für die Icons
+## Entwicklung
+
+Voraussetzung: Node.js 22+
+
+```bash
+npm install
 ```
 
-Die Scripts sind bewusst klassische `<script>`-Dateien (keine ES-Module), weil Browser
-ES-Module beim Öffnen per `file://` blockieren. Sie teilen sich den globalen Scope;
-die Reihenfolge der `<script>`-Tags in der HTML-Datei ist daher wichtig.
+```bash
+npm start
+```
 
-## Icons (Lucide)
+| Befehl | Zweck |
+| --- | --- |
+| `npm start` | Server starten und Browser öffnen (`npm run dev` ohne Browser) |
+| `npm run build:css` | Tailwind-CSS nach `public/css/tailwind.css` bauen (nach neuen Klassen nötig) |
+| `npm run watch:css` | Tailwind beim Bearbeiten automatisch neu bauen |
+| `npm run build:exe` | `dist/Projekt-Status-Board.exe` bauen (geht auch unter Linux/macOS) |
+| `npm run build:exe:linux` | Linux-Programmdatei `dist/projekt-status-board` bauen |
+| `node tools/fetch-icons.mjs NAME …` | Lucide-Icons nachladen, z. B. `calendar flag` |
 
-Die Icons stammen von [lucide.dev](https://lucide.dev/icons/) (ISC-Lizenz) und liegen als SVG
-im Repository – zur Laufzeit wird nichts aus einem CDN geladen. `js/icons.js` bündelt sie als
-SVG-Sprite; verwendet werden sie so:
+`build:exe` nutzt die in Node eingebaute „Single Executable Application“: Die Web-App aus `public/`
+wird in eine Kopie der Node-Laufzeit eingebettet. Für ein fremdes Zielsystem wird die passende
+Node-Version von nodejs.org geladen und per SHA-256 geprüft. Der GitHub-Workflow
+`.github/workflows/build-exe.yml` baut und testet die EXE auf Windows und stellt sie als Download bereit.
+
+### Aufbau
+
+```
+server/server.js          lokaler Server (nur Node-Bordmittel): Web-App, API, Speicherung, Protokoll
+public/                   Web-App
+  projekt_status_aufgaben_board.html
+  css/ tailwind.css (gebaut) · fonts.css · board.css
+  js/  core · dependencies · gantt · views · dialogs · ai-proofread · quick-add · reports · main
+       icons.js (gebaut aus assets/icons/lucide)
+  assets/icons/lucide/    Lucide-SVGs (ISC)
+  assets/fonts/           Inter, JetBrains Mono (SIL OFL 1.1)
+tools/                    Build-Skripte (EXE, Icons)
+```
+
+Die Scripts im Browser sind klassische `<script>`-Dateien (keine ES-Module), damit die HTML-Datei
+auch per Doppelklick funktioniert. Sie teilen sich den globalen Scope; die Reihenfolge der
+`<script>`-Tags ist wichtig.
+
+### API des lokalen Servers
+
+| Methode | Pfad | |
+| --- | --- | --- |
+| GET | `/api/health` | Version, Datenordner |
+| GET | `/api/projects` | Projekte mit Anzahl Aufgaben |
+| GET | `/api/projects/<Projekt>/tasks` | Aufgaben |
+| PUT | `/api/projects/<Projekt>/tasks` | kompletten Stand speichern; Unterschiede werden protokolliert (`?reason=import` fasst zusammen) |
+| GET | `/api/projects/<Projekt>/history?from=JJJJ-MM-TT&to=JJJJ-MM-TT` | Änderungsprotokoll |
+
+Der Server lauscht nur auf `127.0.0.1` – andere Rechner im Netz haben keinen Zugriff.
+
+### Icons (Lucide)
+
+Icons von [lucide.dev](https://lucide.dev/icons/) liegen als SVG im Repository, `public/js/icons.js` bündelt sie als Sprite:
 
 ```html
 <svg class="icon text-emerald-500"><use href="#i-plus"></use></svg>
 ```
 
 ```js
-icon('plus', 'text-xs text-emerald-500')   // liefert das Markup als String
-setIcon(element, 'check', 'text-emerald-300') // tauscht ein vorhandenes Icon aus
+icon('plus', 'text-xs text-emerald-500')      // Markup als String
+setIcon(element, 'check', 'text-emerald-300') // vorhandenes Icon austauschen
 ```
 
-Größe und Farbe richten sich wie bei Schrift nach `font-size` und `color` (`text-xs`, `text-rose-500` …).
-
-Neues Icon hinzufügen (Name von lucide.dev, benötigt Node 18+):
-
-```bash
-node tools/fetch-icons.mjs calendar flag
-```
-
-Das Skript lädt die SVGs aus dem versionierten npm-Paket `lucide-static` nach
-`assets/icons/lucide/` und erzeugt `js/icons.js` neu. Wer SVGs von Hand von lucide.dev
-herunterlädt und in den Ordner legt, baut den Sprite anschließend mit:
-
-```bash
-node tools/build-icons.mjs
-```
-
-## Noch extern geladen
-
-- Tailwind CSS (Play-CDN `cdn.tailwindcss.com`)
-- Schriftarten Inter / JetBrains Mono (Google Fonts)
-
-Ohne Internet funktioniert die Logik weiterhin, das Layout aber nicht.
+Neue Icons: `node tools/fetch-icons.mjs calendar flag` (lädt aus dem npm-Paket `lucide-static` und baut den Sprite neu).
+Von Hand heruntergeladene SVGs in `public/assets/icons/lucide/` legen und `npm run build:icons` ausführen.
