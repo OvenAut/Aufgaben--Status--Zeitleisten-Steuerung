@@ -21,21 +21,13 @@
         <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white text-base font-bold">
           <svg class="icon" aria-hidden="true"><use href="#i-layers"></use></svg>
         </div>
-        <div>
-          <div class="flex items-center gap-2">
-            <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2" id="projectHeaderTitle">
-              Projekt Hub
-            </h1>
-            <span id="workspaceBadge" class="text-xs font-mono font-medium px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5" title="Erkannter Workspace">
-              <svg class="icon text-[10px]" aria-hidden="true"><use href="#i-folder-open"></use></svg>
-              <span id="workspaceBadgeName">Default</span>
-            </span>
-          </div>
-          <p class="text-xs text-slate-500 dark:text-slate-400 hidden md:flex items-center gap-2">
-            <span>Aufgaben-, Status- & Zeitleisten-Steuerung</span>
-            <span class="text-slate-300 dark:text-slate-600">•</span>
-            <span class="text-slate-500 font-mono text-[11px]" id="storageKeyHint">Key: project_board_data_default</span>
-          </p>
+        <div class="flex items-center gap-2 min-w-0">
+          <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white truncate" id="projectHeaderTitle">Projekt</h1>
+          <!-- nur sichtbar, wenn der lokale Server nicht erreichbar ist -->
+          <span id="workspaceBadge" class="hidden text-xs font-medium px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1.5">
+            <svg class="icon text-[10px]" aria-hidden="true"><use href="#i-circle-alert"></use></svg>
+            <span id="workspaceBadgeName">Server offline</span>
+          </span>
         </div>
       </div>
 
@@ -124,6 +116,9 @@
             <div id="projectMenu" class="hidden border-b border-slate-100 dark:border-slate-800 pb-1 mb-1">
               <div class="px-3.5 pt-1.5 pb-1 text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">Projekte</div>
               <div id="projectMenuList" class="max-h-48 overflow-y-auto custom-scroll"></div>
+              <button onclick="deleteProject(currentWorkspace.projectName)" class="w-full text-left px-3.5 py-1.5 hover:bg-rose-50 dark:hover:bg-rose-500/10 flex items-center gap-2.5 text-rose-600 dark:text-rose-400">
+                <svg class="icon w-4" aria-hidden="true"><use href="#i-trash-2"></use></svg> Dieses Projekt löschen …
+              </button>
               <button onclick="createProject()" class="w-full text-left px-3.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5 text-emerald-700 dark:text-emerald-400">
                 <svg class="icon w-4" aria-hidden="true"><use href="#i-plus"></use></svg> Neues Projekt …
               </button>

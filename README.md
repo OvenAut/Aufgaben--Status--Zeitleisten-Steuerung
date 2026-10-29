@@ -23,7 +23,12 @@ daten/
     history.jsonl         Änderungsprotokoll (jede Änderung mit Uhrzeit)
     backups/tasks_JJJJ-MM-TT.json   Stand vom Tagesbeginn
   Linie 2/ …              weitere Projekte (Menü ⋮ → „Neues Projekt …“)
+  _papierkorb/            gelöschte Projekte (Menü ⋮ → Papierkorb-Symbol bzw. „Dieses Projekt löschen …“)
 ```
+
+Projekte lassen sich nach Rückfrage löschen, auch das Hauptprojekt. Der Ordner wird dabei nach
+`daten/_papierkorb/<Projekt>_<Zeitpunkt>` verschoben; zum Wiederherstellen den Ordner zurück nach
+`daten/` kopieren und auf den Projektnamen umbenennen. Demodaten gibt es nur beim allerersten Start.
 
 Ist der Ordner neben der EXE nicht beschreibbar, wird `%APPDATA%\Projekt-Status-Board\daten` verwendet
 (der tatsächliche Pfad steht im Konsolenfenster).
@@ -100,6 +105,7 @@ auch per Doppelklick funktioniert. Sie teilen sich den globalen Scope; die Reihe
 | GET | `/api/projects` | Projekte mit Anzahl Aufgaben |
 | GET | `/api/projects/<Projekt>/tasks` | Aufgaben |
 | PUT | `/api/projects/<Projekt>/tasks` | kompletten Stand speichern; Unterschiede werden protokolliert (`?reason=import` fasst zusammen) |
+| DELETE | `/api/projects/<Projekt>` | Projekt in den Papierkorb (`daten/_papierkorb`) verschieben |
 | GET | `/api/projects/<Projekt>/history?from=JJJJ-MM-TT&to=JJJJ-MM-TT` | Änderungsprotokoll |
 
 Der Server lauscht nur auf `127.0.0.1` – andere Rechner im Netz haben keinen Zugriff.

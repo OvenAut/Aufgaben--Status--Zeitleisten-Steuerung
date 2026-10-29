@@ -264,16 +264,14 @@ let cachedGroupPositions = {};
 // -------------------------------------------------------------
 function initWorkspaceUI() {
   const headerTitle = document.getElementById('projectHeaderTitle');
-  const badgeName = document.getElementById('workspaceBadgeName');
-  const storageHint = document.getElementById('storageKeyHint');
   const dropdownTitle = document.getElementById('dropdownWorkspaceTitle');
 
-  if (headerTitle) headerTitle.innerText = `Projekt: ${currentWorkspace.projectName}`;
-  if (badgeName) badgeName.innerText = currentWorkspace.filename;
-  if (storageHint) {
-    storageHint.innerText = SERVER_MODE
-      ? `Speicher: daten/${currentWorkspace.projectName}/tasks.json · Änderungsprotokoll aktiv`
-      : `Key: ${currentWorkspace.storageKey} (nur in diesem Browser)`;
+  if (headerTitle) {
+    headerTitle.innerText = currentWorkspace.projectName;
+    // Details nur noch als Tooltip
+    headerTitle.title = SERVER_MODE
+      ? `Projekt "${currentWorkspace.projectName}" – gespeichert in daten/${currentWorkspace.projectName}/tasks.json, mit Änderungsprotokoll`
+      : `Projekt "${currentWorkspace.projectName}" – gespeichert nur in diesem Browser (${currentWorkspace.storageKey})`;
   }
   if (dropdownTitle) dropdownTitle.innerText = `Workspace: ${currentWorkspace.projectName}`;
   document.title = `${currentWorkspace.projectName} - Board & Gantt (2D & 3D)`;
@@ -536,8 +534,8 @@ async function loadTasksFromServer() {
       tasks = data.tasks.map(normalizeTask);
       dropDanglingDeps();
     } else {
-      // neues Projekt: das Hauptprojekt startet mit Demodaten, weitere Projekte leer
-      tasks = currentWorkspace.projectName === DEFAULT_SERVER_PROJECT ? DEFAULT_TASKS.map(normalizeTask) : [];
+      // neues Projekt startet leer – nur beim allerersten Start bekommt das Hauptprojekt Demodaten
+      tasks = data.firstStart && currentWorkspace.projectName === DEFAULT_SERVER_PROJECT ? DEFAULT_TASKS.map(normalizeTask) : [];
       saveTasks();
     }
   } catch (e) {
@@ -550,6 +548,7 @@ async function loadTasksFromServer() {
 
 // Speichert den kompletten Stand; der Server protokolliert die Unterschiede mit Zeitstempel
 async function pushTasksToServer(reason = '') {
+  if (projectDeleted) return;
   if (serverSaveInFlight) {
     serverSavePending = true;
     serverPendingReason = reason || serverPendingReason;
@@ -593,12 +592,9 @@ function setServerStatus(online) {
   const badge = document.getElementById('workspaceBadge');
   const name = document.getElementById('workspaceBadgeName');
   if (!badge || !name) return;
-  name.innerText = online ? `Server · ${currentWorkspace.projectName}` : 'Server offline';
-  badge.title = online ? 'Gespeichert auf dem lokalen Server (mit Änderungsprotokoll)' : 'Lokaler Server nicht erreichbar – App (EXE) gestartet?';
-  badge.classList.toggle('text-rose-600', !online);
-  badge.classList.toggle('dark:text-rose-400', !online);
-  badge.classList.toggle('bg-rose-500/10', !online);
-  badge.classList.toggle('border-rose-500/30', !online);
+  // nur bei Problemen sichtbar
+  badge.classList.toggle('hidden', online);
+  badge.title = 'Lokaler Server nicht erreichbar – läuft die App (EXE) noch? Änderungen werden vorerst nur im Browser gespeichert.';
 }
 
 async function loadProjectMenu() {
@@ -611,11 +607,59 @@ async function loadProjectMenu() {
   } catch (e) {}
   if (!projects.some(p => p.name === currentWorkspace.projectName)) projects.unshift({ name: currentWorkspace.projectName, tasks: tasks.length });
   document.getElementById('projectMenuList').innerHTML = projects.map(p => `
-    <a href="?projekt=${encodeURIComponent(p.name)}" class="w-full text-left px-3.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5 ${p.name === currentWorkspace.projectName ? 'font-semibold text-emerald-700 dark:text-emerald-400' : ''}">
+    <a href="?projekt=${encodeURIComponent(p.name)}" class="group w-full text-left px-3.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5 ${p.name === currentWorkspace.projectName ? 'font-semibold text-emerald-700 dark:text-emerald-400' : ''}">
       ${icon(p.name === currentWorkspace.projectName ? 'circle-check' : 'folder-open', 'w-4')}
       <span class="truncate flex-1">${escapeHTML(p.name)}</span>
-      <span class="text-[10px] text-slate-400">${p.tasks}</span>
+      <span class="text-[10px] text-slate-400 group-hover:hidden">${p.tasks}</span>
+      <button type="button" data-delete-project="${escapeHTML(p.name)}" class="hidden group-hover:flex p-0.5 rounded text-slate-400 hover:text-rose-600 dark:hover:text-rose-400" title="Projekt „${escapeHTML(p.name)}“ löschen">${icon('trash-2', 'text-[11px]')}</button>
     </a>`).join('');
+  document.querySelectorAll('[data-delete-project]').forEach(btn => {
+    btn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      deleteProject(btn.dataset.deleteProject);
+    };
+  });
+}
+
+let projectDeleted = false;
+
+// Projekt in den Papierkorb (daten/_papierkorb) verschieben – nach Rückfrage
+async function deleteProject(name) {
+  const isCurrent = name === currentWorkspace.projectName;
+  let count = isCurrent ? tasks.length : null;
+  if (count === null) {
+    try {
+      const list = await (await fetch('/api/projects', { cache: 'no-store' })).json();
+      count = (list.find(p => p.name === name) || {}).tasks ?? 0;
+    } catch (e) { count = 0; }
+  }
+  const ok = confirm(`Projekt „${name}“ wirklich löschen?\n\n${count} Aufgabe(n) samt Änderungsprotokoll werden aus der Projektliste entfernt.\nDer Ordner wird nach daten/_papierkorb verschoben und kann von dort bei Bedarf zurückgeholt werden.`);
+  if (!ok) return;
+
+  if (isCurrent) projectDeleted = true; // keine weiteren Speicherungen, sonst entstünde das Projekt neu
+  try {
+    const res = await fetch(`/api/projects/${encodeURIComponent(name)}`, { method: 'DELETE' });
+    if (!res.ok && res.status !== 404) throw new Error(`HTTP ${res.status}`);
+  } catch (e) {
+    projectDeleted = false;
+    showToast(`Löschen fehlgeschlagen: ${e.message}`, 'error');
+    return;
+  }
+  try { localStorage.removeItem(`project_board_server_${name}`); } catch (e) {}
+
+  if (!isCurrent) {
+    showToast(`Projekt „${name}“ gelöscht (im Papierkorb)`);
+    loadProjectMenu();
+    return;
+  }
+  // zum nächsten vorhandenen Projekt wechseln, sonst ein leeres Hauptprojekt
+  let next = DEFAULT_SERVER_PROJECT;
+  try {
+    const list = await (await fetch('/api/projects', { cache: 'no-store' })).json();
+    if (list.length) next = list[0].name;
+  } catch (e) {}
+  location.href = `?projekt=${encodeURIComponent(next)}`;
 }
 
 function createProject() {

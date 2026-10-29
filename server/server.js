@@ -20,6 +20,7 @@ const APP_VERSION = '1.0.0';
 const DEFAULT_PROJECT = 'Hauptprojekt';
 const START_PAGE = 'projekt_status_aufgaben_board.html';
 const MAX_BODY = 20 * 1024 * 1024;
+const TRASH_DIR_NAME = '_papierkorb';
 
 // Felder, die nur Zeitstempel/Verwaltung sind und nicht als inhaltliche Änderung protokolliert werden
 const UNTRACKED_FIELDS = new Set(['updatedAt', 'createdAt', 'statusChangedAt', 'doneAt', 'blockedSince', 'prevStatus']);
@@ -128,10 +129,26 @@ function readTasks(project) {
   }
 }
 
+// Löschen = in den Papierkorb verschieben (daten/_papierkorb/<Projekt>_<Zeitpunkt>), damit nichts endgültig verloren geht
+function deleteProject(project) {
+  const dir = projectDir(project);
+  if (path.basename(dir) === TRASH_DIR_NAME || !fs.existsSync(dir)) return null;
+  const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
+  const target = path.join(DATA_DIR, TRASH_DIR_NAME, `${path.basename(dir)}_${stamp}`);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.renameSync(dir, target);
+  return target;
+}
+
+// Erster Start: noch nie ein Projekt angelegt oder gelöscht -> Hauptprojekt mit Demodaten
+function isFirstStart() {
+  return listProjects().length === 0 && !fs.existsSync(path.join(DATA_DIR, TRASH_DIR_NAME));
+}
+
 function listProjects() {
   try {
     return fs.readdirSync(DATA_DIR, { withFileTypes: true })
-      .filter(d => d.isDirectory() && fs.existsSync(path.join(DATA_DIR, d.name, 'tasks.json')))
+      .filter(d => d.isDirectory() && d.name !== TRASH_DIR_NAME && fs.existsSync(path.join(DATA_DIR, d.name, 'tasks.json')))
       .map(d => {
         const tasks = readTasks(d.name) || [];
         const stat = fs.statSync(path.join(DATA_DIR, d.name, 'tasks.json'));
@@ -278,11 +295,20 @@ async function handleApi(req, res, url) {
   if (parts[1] === 'projects' && parts.length === 2 && req.method === 'GET') {
     return sendJson(res, 200, listProjects());
   }
+  if (parts[1] === 'projects' && parts.length === 3 && req.method === 'DELETE') {
+    const target = deleteProject(parts[2]);
+    if (!target) return sendJson(res, 404, { error: 'Projekt nicht gefunden' });
+    console.log(`Projekt "${parts[2]}" in den Papierkorb verschoben: ${target}`);
+    return sendJson(res, 200, { ok: true, trash: path.relative(DATA_DIR, target) });
+  }
+  if (parts[1] === 'projects' && parts.length === 4 && parts[2] === TRASH_DIR_NAME) {
+    return sendJson(res, 400, { error: 'Dieser Projektname ist reserviert' });
+  }
   if (parts[1] === 'projects' && parts.length === 4) {
     const project = parts[2];
     if (parts[3] === 'tasks' && req.method === 'GET') {
       const tasks = readTasks(project);
-      return sendJson(res, 200, { project, exists: tasks !== null, tasks: tasks || [] });
+      return sendJson(res, 200, { project, exists: tasks !== null, firstStart: tasks === null && isFirstStart(), tasks: tasks || [] });
     }
     if (parts[3] === 'tasks' && req.method === 'PUT') {
       let tasks;
