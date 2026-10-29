@@ -1,55 +1,6 @@
 // Dialoge: Aufgaben-Formular, Menü, Export/Import, KI-Schnellimport
 // Teil des Projekt-Status-Boards – klassisches Script (kein ES-Modul), damit es auch per file:// läuft.
 
-// Checkbox-Liste aller möglichen Vorgänger, nach Gruppe sortiert.
-// Nachfolger der Aufgabe sind gesperrt (würde einen Kreis erzeugen).
-function populatePredecessorList(currentId, selectedIds = []) {
-  const container = document.getElementById('taskPredecessorList');
-  const blocked = currentId ? getDescendants(currentId) : new Set();
-  container.innerHTML = '';
-
-  buildGroups(tasks, 'group').forEach(group => {
-    const candidates = group.tasks.filter(t => t.id !== currentId);
-    if (!candidates.length) return;
-    const head = document.createElement('div');
-    head.className = 'px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider bg-slate-50 dark:bg-slate-950/60 sticky top-0';
-    head.style.color = getGroupColor(group.key);
-    head.innerText = group.key;
-    container.appendChild(head);
-
-    candidates.forEach(t => {
-      const isBlocked = blocked.has(t.id);
-      const label = document.createElement('label');
-      label.className = `flex items-center gap-2 px-2.5 py-1.5 ${isBlocked ? 'opacity-45 cursor-not-allowed' : 'cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-950/30'}`;
-      label.title = isBlocked ? 'Nicht möglich: Diese Aufgabe hängt bereits von der aktuellen Aufgabe ab (Kreis).' : '';
-      label.innerHTML = `
-        <input type="checkbox" value="${t.id}" ${selectedIds.includes(t.id) ? 'checked' : ''} ${isBlocked ? 'disabled' : ''} onchange="updatePredecessorCount()" class="accent-emerald-600 flex-shrink-0" />
-        <span class="flex-1 truncate text-slate-800 dark:text-slate-200">${escapeHTML(t.title)}</span>
-        <span class="text-[10px] text-slate-400 flex-shrink-0">${escapeHTML(t.status)} · Ende ${formatDate(t.endDate)}</span>`;
-      container.appendChild(label);
-    });
-  });
-
-  if (!container.children.length) {
-    container.innerHTML = '<div class="px-2.5 py-2 text-slate-400">Noch keine anderen Aufgaben vorhanden.</div>';
-  }
-  updatePredecessorCount();
-}
-
-function getSelectedPredecessors() {
-  return [...document.querySelectorAll('#taskPredecessorList input[type="checkbox"]:checked')].map(cb => cb.value);
-}
-
-function updatePredecessorCount() {
-  const n = getSelectedPredecessors().length;
-  document.getElementById('predecessorCount').innerText = n ? `(${n} gewählt)` : '';
-}
-
-function clearPredecessorSelection() {
-  document.querySelectorAll('#taskPredecessorList input[type="checkbox"]').forEach(cb => { cb.checked = false; });
-  updatePredecessorCount();
-}
-
 function openTaskModal(isEdit = false) {
   const modal = document.getElementById('taskModal');
   const title = document.getElementById('modalTitle');
@@ -63,7 +14,6 @@ function openTaskModal(isEdit = false) {
     document.getElementById('taskGroup').value = '';
     document.getElementById('taskOwner').value = '';
     document.getElementById('taskMilestone').checked = false;
-    populatePredecessorList('');
     title.innerHTML = '<svg class="icon text-emerald-500" aria-hidden="true"><use href="#i-plus"></use></svg> Neue Aufgabe erstellen';
   }
   document.getElementById('aiAutoCopy').checked = isAiAutoCopy();
@@ -77,8 +27,6 @@ function closeTaskModal() {
 function editTask(id) {
   const task = tasks.find(t => t.id === id);
   if (!task) return;
-
-  populatePredecessorList(task.id, task.dependsOn);
 
   document.getElementById('taskId').value = task.id;
   document.getElementById('taskTitle').value = task.title || '';
@@ -123,7 +71,8 @@ function handleTaskSubmit(e) {
   const group = document.getElementById('taskGroup').value.trim();
   const owner = document.getElementById('taskOwner').value.trim();
   const milestone = document.getElementById('taskMilestone').checked;
-  const dependsOn = getSelectedPredecessors();
+  // Vorgänger werden im Gantt verknüpft (⊕ am Balken) – das Formular behält sie unverändert bei
+  const dependsOn = id ? [...((getTask(id) || {}).dependsOn || [])] : [];
   const phase = document.getElementById('taskPhase').value;
   const priority = document.getElementById('taskPriority').value;
   const status = document.getElementById('taskStatus').value;

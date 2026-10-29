@@ -553,18 +553,6 @@
           </div>
         </div>
 
-        <!-- Dependency Predecessor Selector (mehrere Vorgänger möglich) -->
-        <div class="bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 rounded-xl p-3 space-y-2">
-          <label class="block text-emerald-900 dark:text-emerald-300 font-semibold flex items-center justify-between">
-            <span class="flex items-center gap-1.5"><svg class="icon text-emerald-500" aria-hidden="true"><use href="#i-link"></use></svg> Abhängig von (Vorgänger) <span id="predecessorCount" class="text-[10px] font-normal text-emerald-700/80 dark:text-emerald-400/80"></span></span>
-            <button type="button" onclick="clearPredecessorSelection()" class="text-[10px] text-slate-500 dark:text-slate-400 hover:underline">Keine Verknüpfung</button>
-          </label>
-          <div id="taskPredecessorList" class="max-h-40 overflow-y-auto custom-scroll rounded-lg bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700/60 divide-y divide-slate-100 dark:divide-slate-800 text-xs"></div>
-          <p class="text-[11px] text-emerald-800/80 dark:text-emerald-400/80 leading-tight">
-            Ende → Anfang: Die Aufgabe startet erst nach dem Ende <b>aller</b> gewählten Vorgänger. Verschiebt sich ein Vorgänger, wandert sie automatisch mit.
-          </p>
-        </div>
-
         <!-- Phase & Priority Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <div>
