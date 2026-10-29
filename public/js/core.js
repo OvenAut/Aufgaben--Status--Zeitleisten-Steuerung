@@ -18,13 +18,13 @@ function applyTheme(isDark) {
   if (isDark) {
     html.classList.add('dark');
     localStorage.setItem(THEME_STORAGE_KEY, 'dark');
-    setIcon(themeIcon, 'sun', 'text-amber-400 text-sm');
-    if (themeLabel) themeLabel.innerText = 'Hell';
+    setIcon(themeIcon, 'sun', 'w-4 text-amber-400');
+    if (themeLabel) themeLabel.innerText = 'Hellmodus';
   } else {
     html.classList.remove('dark');
     localStorage.setItem(THEME_STORAGE_KEY, 'light');
-    setIcon(themeIcon, 'moon', 'text-indigo-500 text-sm');
-    if (themeLabel) themeLabel.innerText = 'Dunkel';
+    setIcon(themeIcon, 'moon', 'w-4 text-indigo-500');
+    if (themeLabel) themeLabel.innerText = 'Dunkelmodus';
   }
 
   if (tasks && tasks.length > 0) {
@@ -339,6 +339,7 @@ async function loadTasks() {
   switchView('gantt');
   initAutoExtend();
   initHoverCard();
+  initLayout();
 }
 
 function saveViewState() {

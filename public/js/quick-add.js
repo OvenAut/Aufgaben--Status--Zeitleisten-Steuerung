@@ -53,6 +53,9 @@ function updateInboxButton() {
   const btn = document.getElementById('btnInboxFilter');
   const count = tasks.filter(isInboxTask).length;
   if (!count && inboxOnly) inboxOnly = false;
+  const badge = document.getElementById('quickInboxBadge');
+  badge.innerText = count;
+  badge.classList.toggle('hidden', count === 0);
   btn.classList.toggle('hidden', count === 0 && !inboxOnly);
   document.getElementById('inboxCountLabel').innerText = inboxOnly ? `Eingang (${count}) · alle zeigen` : `${count} im Eingang`;
   btn.className = btn.className

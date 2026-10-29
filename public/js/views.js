@@ -282,6 +282,7 @@ function updateGanttToolbar(filtered) {
 function render() {
   populateGroupControls();
   updateInboxButton();
+  updateOverviewSummary();
   const filtered = getFilteredTasks();
   updateMetrics();
   updateGanttToolbar(filtered);

@@ -57,11 +57,6 @@
           </button>
         </div>
 
-        <!-- Theme Switcher -->
-        <button id="themeToggleBtn" onclick="toggleTheme()" class="p-2 sm:px-3 sm:py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center gap-1.5 text-xs sm:text-sm font-medium transition shadow-sm" title="Zwischen Hell- und Dunkelmodus wechseln">
-          <svg id="themeToggleIcon" class="icon text-amber-500 text-xs sm:text-sm" aria-hidden="true"><use href="#i-sun"></use></svg>
-          <span id="themeToggleLabel" class="hidden sm:inline text-xs">Hell</span>
-        </button>
 
         <!-- AI Import -->
         <button onclick="openAiImportModal()" class="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold shadow-md shadow-indigo-600/20 border border-indigo-500/30 transition">
@@ -81,6 +76,35 @@
           <svg class="icon" aria-hidden="true"><use href="#i-spell-check"></use></svg>
           <span class="hidden md:inline">KI-Korrektur</span>
         </button>
+
+        <!-- Schnellerfassung: nur Titel + Beschreibung, Zuordnung später -->
+        <div class="relative" id="quickAddWrap">
+          <button id="quickAddButton" onclick="toggleQuickAdd()" class="relative flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 active:scale-95 text-amber-700 dark:text-amber-300 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold border border-amber-300 dark:border-amber-700/60 shadow-sm transition" title="Schnell erfassen – nur Titel und Beschreibung (Taste N)">
+            <svg class="icon" aria-hidden="true"><use href="#i-zap"></use></svg>
+            <span class="hidden md:inline">Schnell</span>
+            <span id="quickInboxBadge" class="hidden absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center shadow" title="Aufgaben im Eingang (noch nicht zugeordnet)">0</span>
+          </button>
+          <form id="quickAddForm" onsubmit="handleQuickAdd(event)" class="hidden absolute right-0 mt-2 w-[min(380px,calc(100vw-24px))] rounded-xl bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700/60 shadow-2xl z-50 p-3 space-y-2 text-xs">
+            <div class="flex items-center justify-between">
+              <span class="font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                <svg class="icon" aria-hidden="true"><use href="#i-zap"></use></svg> Schnell erfassen
+              </span>
+              <span class="text-[10px] text-slate-400 dark:text-slate-500">Zuordnung später · landet im Eingang</span>
+            </div>
+            <input type="text" id="quickTitle" required placeholder="Titel der Aufgabe *" autocomplete="off"
+                   class="w-full px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-[#030712] border border-slate-200 dark:border-slate-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 outline-none transition" />
+            <textarea id="quickNotes" rows="2" placeholder="Beschreibung (optional) – Enter speichert, Umschalt+Enter neue Zeile" autocomplete="off"
+                      class="w-full px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-[#030712] border border-slate-200 dark:border-slate-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 outline-none transition resize-none custom-scroll"></textarea>
+            <div class="flex items-center justify-between gap-2">
+              <button type="button" id="btnInboxFilter" onclick="toggleInboxFilter()" class="hidden px-2.5 py-1.5 rounded-lg font-medium flex items-center gap-1.5 border transition" title="Nur schnell erfasste, noch nicht zugeordnete Aufgaben anzeigen">
+                <svg class="icon" aria-hidden="true"><use href="#i-inbox"></use></svg> <span id="inboxCountLabel">0 im Eingang</span>
+              </button>
+              <button type="submit" class="ml-auto px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 active:scale-95 text-white font-semibold flex items-center gap-1.5 shadow-sm transition">
+                <svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg> Hinzufügen
+              </button>
+            </div>
+          </form>
+        </div>
 
         <!-- Add Task -->
         <button onclick="openTaskModal()" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold shadow-md shadow-emerald-600/25 transition">
@@ -122,6 +146,10 @@
               <svg class="icon text-indigo-600 dark:text-indigo-400 w-4" aria-hidden="true"><use href="#i-clipboard-paste"></use></svg> KI-Korrektur übernehmen
             </button>
             <div class="h-px bg-slate-100 dark:bg-slate-800 my-1"></div>
+            <button id="themeToggleBtn" onclick="toggleTheme()" class="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5" title="Zwischen Hell- und Dunkelmodus wechseln">
+              <svg id="themeToggleIcon" class="icon w-4 text-amber-400" aria-hidden="true"><use href="#i-sun"></use></svg>
+              <span id="themeToggleLabel">Hellmodus</span>
+            </button>
             <label class="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer" title="Nicht erledigte Aufgaben, deren Enddatum heute oder früher liegt, auf den nächsten Arbeitstag verlängern (Meilensteine ausgenommen)">
               <input type="checkbox" id="autoExtendToggle" onchange="setAutoExtendEnabled(this.checked)" class="accent-emerald-600 w-4" />
               Überfällige automatisch verlängern
@@ -153,25 +181,22 @@
 
   <!-- Full-Bleed Edge-to-Edge Main Container -->
   <main class="flex-1 w-full px-3 lg:px-6 py-3 flex flex-col gap-3 min-h-0 overflow-hidden">
-    <!-- Schnellerfassung: nur Titel + Beschreibung, Zuordnung später -->
-    <form id="quickAddForm" onsubmit="handleQuickAdd(event)" class="bg-white dark:bg-slate-900/70 border border-amber-300/70 dark:border-amber-700/40 rounded-xl p-2 flex flex-wrap sm:flex-nowrap items-center gap-2 shadow-xs flex-shrink-0">
-      <span class="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 px-1.5 flex-shrink-0">
-        <svg class="icon" aria-hidden="true"><use href="#i-zap"></use></svg> Schnell erfassen
-      </span>
-      <input type="text" id="quickTitle" required placeholder="Titel der Aufgabe *" autocomplete="off"
-             class="flex-1 min-w-[160px] px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-[#030712] border border-slate-200 dark:border-slate-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 outline-none transition" />
-      <input type="text" id="quickNotes" placeholder="Beschreibung (optional) – Enter speichert" autocomplete="off"
-             class="flex-[2] min-w-[200px] px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-[#030712] border border-slate-200 dark:border-slate-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 outline-none transition" />
-      <button type="submit" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 active:scale-95 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition flex-shrink-0">
-        <svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg> Hinzufügen
+    <!-- Eingeklappte Kurzfassung von Kennzahlen & Filtern -->
+    <div id="overviewCollapsedBar" class="hidden bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs shadow-xs flex-shrink-0">
+      <button onclick="setOverviewCollapsed(false)" class="flex items-center gap-1.5 font-semibold text-slate-700 dark:text-slate-200 hover:text-emerald-700 dark:hover:text-emerald-400 transition" title="Kennzahlen und Filter einblenden">
+        <svg class="icon" aria-hidden="true"><use href="#i-chevron-down"></use></svg> Kennzahlen &amp; Filter
       </button>
-      <button type="button" id="btnInboxFilter" onclick="toggleInboxFilter()" class="hidden px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition flex-shrink-0" title="Nur schnell erfasste, noch nicht zugeordnete Aufgaben anzeigen">
-        <svg class="icon" aria-hidden="true"><use href="#i-inbox"></use></svg> <span id="inboxCountLabel">0 im Eingang</span>
-      </button>
-    </form>
+      <div id="overviewSummary" class="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-500 dark:text-slate-400"></div>
+      <div id="overviewActiveFilters" class="hidden ml-auto flex items-center gap-1.5">
+        <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-semibold flex items-center gap-1">
+          <svg class="icon text-[10px]" aria-hidden="true"><use href="#i-funnel-x"></use></svg> <span id="overviewFilterCount">0 Filter aktiv</span>
+        </span>
+        <button onclick="resetFilters()" class="px-2 py-0.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition" title="Alle Filter zurücksetzen">zurücksetzen</button>
+      </div>
+    </div>
 
     <!-- Quick KPI Stats Bar (Edge-to-Edge Fluid Grid) -->
-    <section class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2.5 flex-shrink-0">
+    <section id="statsSection" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2.5 flex-shrink-0">
       <!-- Total -->
       <div class="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-xl p-2.5 sm:p-3 shadow-xs">
         <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-medium mb-0.5">
@@ -229,7 +254,7 @@
     </section>
 
     <!-- Filters & Search Toolbar (Fluid Edge-to-Edge) -->
-    <section class="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 flex flex-wrap items-center gap-2.5 shadow-xs flex-shrink-0">
+    <section id="filterSection" class="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 flex flex-wrap items-center gap-2.5 shadow-xs flex-shrink-0">
       <div class="min-w-[200px] flex-1 relative">
         <svg class="icon absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-xs" aria-hidden="true"><use href="#i-search"></use></svg>
         <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Suchen nach Titel, Gruppe, Verantwortlichem, Notizen …" 
@@ -288,6 +313,11 @@
       <button onclick="resetFilters()" title="Filter zurücksetzen" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 text-xs flex items-center gap-1.5 transition">
         <svg class="icon" aria-hidden="true"><use href="#i-funnel-x"></use></svg>
         <span class="hidden sm:inline">Zurücksetzen</span>
+      </button>
+
+      <button onclick="setOverviewCollapsed(true)" title="Kennzahlen und Filter einklappen" class="px-2 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 text-xs flex items-center gap-1 transition">
+        <svg class="icon" aria-hidden="true"><use href="#i-chevron-up"></use></svg>
+        <span class="hidden lg:inline">Einklappen</span>
       </button>
     </section>
 
@@ -845,6 +875,7 @@
   <script src="js/reports.js"></script>
   <script src="js/overdue.js"></script>
   <script src="js/hovercard.js"></script>
+  <script src="js/layout.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>
