@@ -338,6 +338,7 @@ async function loadTasks() {
   initGanttZoom();
   switchView('gantt');
   initAutoExtend();
+  initHoverCard();
 }
 
 function saveViewState() {

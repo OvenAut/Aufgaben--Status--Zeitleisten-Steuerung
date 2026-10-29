@@ -77,6 +77,7 @@ function renderKanban(filteredTasks) {
       card.className = 'kanban-card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 rounded-xl p-3.5 shadow-sm space-y-2.5';
       card.draggable = true;
       card.id = `card-${t.id}`;
+      card.dataset.taskId = t.id;
 
       card.ondragstart = (e) => handleDragStart(e, t.id);
       card.ondragend = (e) => handleDragEnd(e);
@@ -209,6 +210,7 @@ function renderTable(filteredTasks) {
 
   function renderTableRow(t, groupKey) {
     const tr = document.createElement('tr');
+    tr.dataset.taskId = t.id;
     tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 transition border-b border-slate-100 dark:border-slate-800/60';
 
     const isOverdue = t.endDate && new Date(t.endDate) < new Date().setHours(0,0,0,0) && !isClosed(t);

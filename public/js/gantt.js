@@ -236,7 +236,6 @@ function renderGantt(filteredTasks) {
     left.className = `gantt-left-row gantt-group-left h-10 pl-2 pr-3 flex items-center justify-between text-xs border-b border-slate-200 dark:border-slate-800/60 bg-slate-100 dark:bg-slate-900/90 ${collapsed ? 'collapsed' : ''}`;
     left.style.borderLeft = `4px solid ${color}`;
     left.dataset.groupTasks = ids;
-    left.title = collapsed ? 'Gruppe aufklappen' : 'Gruppe zuklappen';
     left.onclick = (e) => toggleGroup(group.key, e);
     left.ondragover = handleGroupDragOver;
     left.ondragleave = handleGroupDragLeave;
@@ -266,8 +265,7 @@ function renderGantt(filteredTasks) {
     row.dataset.groupTasks = ids;
     row.onclick = (e) => toggleGroup(group.key, e);
     row.innerHTML = `
-      <div class="gantt-group-bar absolute" style="left:${span.left}px; width:${span.width}px; top:13px; height:14px;"
-           title="${escapeHTML(group.key)}: ${formatDate(gStart)} bis ${formatDate(gEnd)} – ${pct}% (${group.tasks.length} Aufgaben)">
+      <div class="gantt-group-bar absolute" style="left:${span.left}px; width:${span.width}px; top:13px; height:14px;">
         <div class="absolute inset-x-0 top-0 h-[9px] rounded-sm overflow-hidden" style="background:${color}33; border:1px solid ${color};">
           <div class="h-full" style="width:${pct}%; background:${color}; opacity:0.8;"></div>
         </div>
@@ -338,7 +336,7 @@ function renderGantt(filteredTasks) {
           <svg class="icon text-xs" aria-hidden="true"><use href="#i-grip-vertical"></use></svg>
         </span>
         <div class="truncate min-w-0">
-          <div class="font-medium text-slate-900 dark:text-slate-200 truncate" title="${escapeHTML(task.title)}">${escapeHTML(task.title)}</div>
+          <div class="font-medium text-slate-900 dark:text-slate-200 truncate">${escapeHTML(task.title)}</div>
           <div class="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5 min-w-0">
             ${[
               isInboxTask(task) ? getInboxBadge() : '',
@@ -391,7 +389,6 @@ function renderGantt(filteredTasks) {
     barWrapper.className = 'gantt-bar-wrapper';
     barWrapper.style.left = `${span.left}px`;
 
-    const barTooltip = `${escapeHTML(task.title)} (${task.status})\n${formatDate(task.startDate)} bis ${formatDate(task.endDate)} - ${task.progress || 0}%${task.originalEndDate && !isClosed(task) ? `\nVerlängert: ursprünglich Ende ${formatDate(task.originalEndDate)} (${task.extendedCount || 1}×)` : ''}${task.owner ? `\nVerantwortlich: ${escapeHTML(task.owner)}` : ''}${task.blockReason ? `\nBlockiert: ${escapeHTML(task.blockReason)}` : ''}${preds.length ? `\nNach: ${escapeHTML(preds.map(p => p.title).join(', '))}` : ''}`;
     const isShort = span.width < 110;
     const outsideLabel = isShort
       ? `<span class="ml-1.5 text-[11px] font-medium whitespace-nowrap text-slate-700 dark:text-slate-300 pointer-events-none ${task.status === 'Abgebrochen' ? 'line-through opacity-60' : ''}">${escapeHTML(task.title)}${task.milestone ? ` · ${formatDate(task.endDate)}` : ''}</span>`
@@ -409,7 +406,7 @@ function renderGantt(filteredTasks) {
     if (task.milestone) {
       const milestoneColor = isClosed(task) ? '#10b981' : '#f59e0b';
       barWrapper.innerHTML = `
-        <div class="gantt-bar w-[22px] h-[22px] flex items-center justify-center ${isSelf ? 'animate-pulse' : ''}" onclick="handleTaskClickInGantt('${task.id}', event)" title="Meilenstein: ${barTooltip}">
+        <div class="gantt-bar w-[22px] h-[22px] flex items-center justify-center ${isSelf ? 'animate-pulse' : ''}" onclick="handleTaskClickInGantt('${task.id}', event)" >
           <div class="w-4 h-4 rotate-45 rounded-[3px] border-2 shadow" style="background:${milestoneColor}; border-color:${isDark ? '#fde68a' : '#92400e'};"></div>
         </div>
         ${connectBtn}
@@ -427,8 +424,7 @@ function renderGantt(filteredTasks) {
       const extLeft = spanPx(task.startDate, task.originalEndDate).width;
       if (extLeft < span.width) {
         extensionOverlay = `<div class="absolute top-0 bottom-0 right-0 pointer-events-none border-l-2 border-dashed border-white/70"
-          style="left:${extLeft}px; background: repeating-linear-gradient(135deg, rgba(255,255,255,0.32) 0 4px, transparent 4px 9px);"
-          title="Verlängert – ursprüngliches Ende ${formatDate(task.originalEndDate)}"></div>`;
+          style="left:${extLeft}px; background: repeating-linear-gradient(135deg, rgba(255,255,255,0.32) 0 4px, transparent 4px 9px);"></div>`;
       }
     }
 
@@ -437,7 +433,7 @@ function renderGantt(filteredTasks) {
       <div class="gantt-bar h-8 rounded-lg border flex items-center px-2.5 overflow-hidden text-xs select-none relative ${barColor}"
            style="width: ${span.width}px;${color ? ` box-shadow: inset 3px 0 0 ${color};` : ''}"
            onclick="handleTaskClickInGantt('${task.id}', event)"
-           title="${barTooltip}">
+>
         <div class="absolute left-0 top-0 bottom-0 ${progressFillColor} pointer-events-none transition-all" style="width: ${task.progress || 0}%;"></div>
         ${extensionOverlay}
         ${isShort
