@@ -62,6 +62,8 @@ function weekdayLabel(key) {
 // BERICHT AUFBAUEN (gemeinsame Struktur für Vorschau und Markdown)
 // -------------------------------------------------------------
 function reportLine(t, extra = []) {
+  const late = t.status === 'Erledigt' && t.originalEndDate && t.doneAt ? dayKey(t.doneAt) > t.originalEndDate : false;
+  if (late) extra = [...extra, `verspätet (geplant ${formatDate(t.originalEndDate)})`];
   const meta = [
     t.group || '',
     t.status,
@@ -82,6 +84,13 @@ function blockedLine(t, today) {
   if (t.blockReason) line.notes.unshift(`Grund: ${t.blockReason}`);
   if (t.waitingFor) line.notes.unshift(`Wartet auf: ${t.waitingFor}`);
   return line;
+}
+
+// überfällig: Tage über dem ursprünglichen Termin, ggf. mit automatischer Verlängerung
+function overdueLine(t, refKey) {
+  const extra = [`${getDaysOverOriginal(t, refKey)} Tage über Termin`];
+  if (t.originalEndDate) extra.push(`ursprünglich Ende ${formatDate(t.originalEndDate)}, ${t.extendedCount || 1}× verlängert`);
+  return reportLine(t, extra);
 }
 
 function openDependencyLines(list) {
@@ -165,7 +174,7 @@ function buildReport(type, refKey, list, history) {
     const created = list.filter(t => inRange(t.createdAt, from, to));
     const active = open.filter(t => ['In Arbeit', 'Im Testen'].includes(t.status));
     const blocked = open.filter(t => t.status === 'Blockiert');
-    const overdue = open.filter(t => t.endDate && t.endDate < refKey && t.status !== 'Blockiert');
+    const overdue = open.filter(t => getDaysOverOriginal(t, refKey) > 0 && t.status !== 'Blockiert');
     const dueSoon = open.filter(t => t.endDate && t.endDate >= refKey && t.endDate <= nextKey);
 
     sections.push(
@@ -174,7 +183,7 @@ function buildReport(type, refKey, list, history) {
       { title: 'Neu erfasst', icon: 'plus', tone: 'slate', items: created.map(t => reportLine(t, isInboxTask(t) ? ['Eingang, noch nicht zugeordnet'] : [])) },
       { title: 'In Arbeit / im Test', icon: 'loader-circle', tone: 'blue', items: active.map(t => reportLine(t)) },
       { title: 'Blockiert', icon: 'ban', tone: 'rose', items: blocked.map(t => blockedLine(t, refKey)) },
-      { title: 'Überfällig', icon: 'triangle-alert', tone: 'rose', items: overdue.map(t => reportLine(t, [`${Math.round((new Date(`${refKey}T12:00:00`) - new Date(`${t.endDate}T12:00:00`)) / 86400000)} Tage über Termin`])) },
+      { title: 'Überfällig / verlängert', icon: 'triangle-alert', tone: 'rose', items: overdue.map(t => overdueLine(t, refKey)) },
       { title: `Fällig bis ${formatDate(nextKey)}`, icon: 'clock', tone: 'amber', items: dueSoon.map(t => reportLine(t)) },
       { title: 'Offene Abhängigkeiten', icon: 'link', tone: 'violet', items: openDependencyLines(open) }
     );
@@ -205,7 +214,8 @@ function buildReport(type, refKey, list, history) {
   const created = list.filter(t => inRange(t.createdAt, from, to));
   const active = open.filter(t => ['In Arbeit', 'Im Testen'].includes(t.status));
   const blocked = open.filter(t => t.status === 'Blockiert');
-  const overdue = open.filter(t => t.endDate && t.endDate < to && t.status !== 'Blockiert');
+  const overdueCut = to < dayKey(new Date()) ? to : dayKey(new Date()); // Stichtag: Wochenende oder heute
+  const overdue = open.filter(t => getDaysOverOriginal(t, overdueCut) > 0 && t.status !== 'Blockiert');
   const milestones = list.filter(t => t.milestone && t.endDate >= from && t.endDate <= nextTo).sort((a, b) => a.endDate.localeCompare(b.endDate));
   const outlook = open.filter(t => (t.startDate >= nextFrom && t.startDate <= nextTo) || (t.endDate >= nextFrom && t.endDate <= nextTo));
   const inbox = list.filter(isInboxTask);
@@ -228,7 +238,7 @@ function buildReport(type, refKey, list, history) {
     { title: 'Diese Woche erledigt', icon: 'circle-check', tone: 'emerald', items: done.sort(byGroupThenEnd).map(t => reportLine(t, [`erledigt ${formatDate(dayKey(t.doneAt))}`])) },
     { title: 'In Arbeit / im Test', icon: 'loader-circle', tone: 'blue', items: active.map(t => reportLine(t)) },
     { title: 'Blockiert', icon: 'ban', tone: 'rose', items: blocked.map(t => blockedLine(t, to)) },
-    { title: 'Überfällig', icon: 'triangle-alert', tone: 'rose', items: overdue.map(t => reportLine(t)) },
+    { title: 'Überfällig / verlängert', icon: 'triangle-alert', tone: 'rose', items: overdue.map(t => overdueLine(t, overdueCut)) },
     { title: 'Meilensteine (diese + nächste Woche)', icon: 'chevrons-up', tone: 'amber', items: milestones.map(t => reportLine(t)) },
     { title: `Ausblick KW ${getWeekNumber(new Date(`${nextFrom}T12:00:00`))}`, icon: 'calendar-range', tone: 'indigo', items: outlook.sort(byGroupThenEnd).map(t => reportLine(t, [t.startDate >= nextFrom ? `Start ${formatDate(t.startDate)}` : ''])) },
     { title: 'Offene Abhängigkeiten', icon: 'link', tone: 'violet', items: openDependencyLines(open) },

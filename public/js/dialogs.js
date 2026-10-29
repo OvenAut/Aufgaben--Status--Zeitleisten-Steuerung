@@ -138,6 +138,7 @@ function handleTaskSubmit(e) {
     const index = tasks.findIndex(t => t.id === id);
     if (index !== -1) {
       const oldStatus = tasks[index].status;
+      const oldEndDate = tasks[index].endDate;
       tasks[index] = { 
         ...tasks[index], 
         title, group, owner, milestone, dependsOn, phase, priority, progress, startDate, endDate, nextAction, notes,
@@ -148,6 +149,11 @@ function handleTaskSubmit(e) {
       saved = tasks[index];
       setTaskStatus(saved, status);
       saved.progress = progress;
+      // Enddatum von Hand geändert = neue Planung -> Markierung "automatisch verlängert" entfällt
+      if (endDate !== oldEndDate) {
+        delete saved.originalEndDate;
+        delete saved.extendedCount;
+      }
     }
   } else {
     const now = new Date().toISOString();

@@ -122,6 +122,11 @@
               <svg class="icon text-indigo-600 dark:text-indigo-400 w-4" aria-hidden="true"><use href="#i-clipboard-paste"></use></svg> KI-Korrektur übernehmen
             </button>
             <div class="h-px bg-slate-100 dark:bg-slate-800 my-1"></div>
+            <label class="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer" title="Nicht erledigte Aufgaben, deren Enddatum heute oder früher liegt, auf den nächsten Arbeitstag verlängern (Meilensteine ausgenommen)">
+              <input type="checkbox" id="autoExtendToggle" onchange="setAutoExtendEnabled(this.checked)" class="accent-emerald-600 w-4" />
+              Überfällige automatisch verlängern
+            </label>
+            <div class="h-px bg-slate-100 dark:bg-slate-800 my-1"></div>
             <button onclick="resetToSampleData()" class="w-full text-left px-3.5 py-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 flex items-center gap-2.5">
               <svg class="icon w-4" aria-hidden="true"><use href="#i-rotate-ccw"></use></svg> Demodaten für dieses Projekt
             </button>
@@ -838,6 +843,7 @@
   <script src="js/ai-proofread.js"></script>
   <script src="js/quick-add.js"></script>
   <script src="js/reports.js"></script>
+  <script src="js/overdue.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

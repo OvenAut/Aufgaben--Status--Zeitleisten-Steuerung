@@ -342,6 +342,7 @@ function renderGantt(filteredTasks) {
           <div class="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5 min-w-0">
             ${[
               isInboxTask(task) ? getInboxBadge() : '',
+          getExtendedBadge(task),
               task.owner ? `<span class="flex-shrink-0 font-semibold text-slate-600 dark:text-slate-300" title="Verantwortlich"><svg class="icon text-[8px] mr-0.5" aria-hidden="true"><use href="#i-user"></use></svg>${escapeHTML(task.owner)}</span>` : '',
               `<span class="flex-shrink-0 ${task.status === 'Blockiert' ? 'text-rose-600 dark:text-rose-400 font-semibold' : ''}" ${task.blockReason || task.waitingFor ? `title="${escapeHTML([task.blockReason, task.waitingFor ? 'Wartet auf: ' + task.waitingFor : ''].filter(Boolean).join(' – '))}"` : ''}>${escapeHTML(task.status)}${task.status === 'Blockiert' && (task.blockReason || task.waitingFor) ? ' <svg class="icon text-[8px]" aria-hidden="true"><use href="#i-info"></use></svg>' : ''}</span>`,
               (groupBy === 'phase' ? '' : task.phase) ? `<span class="truncate">${escapeHTML(task.phase)}</span>` : '',
@@ -390,7 +391,7 @@ function renderGantt(filteredTasks) {
     barWrapper.className = 'gantt-bar-wrapper';
     barWrapper.style.left = `${span.left}px`;
 
-    const barTooltip = `${escapeHTML(task.title)} (${task.status})\n${formatDate(task.startDate)} bis ${formatDate(task.endDate)} - ${task.progress || 0}%${task.owner ? `\nVerantwortlich: ${escapeHTML(task.owner)}` : ''}${task.blockReason ? `\nBlockiert: ${escapeHTML(task.blockReason)}` : ''}${preds.length ? `\nNach: ${escapeHTML(preds.map(p => p.title).join(', '))}` : ''}`;
+    const barTooltip = `${escapeHTML(task.title)} (${task.status})\n${formatDate(task.startDate)} bis ${formatDate(task.endDate)} - ${task.progress || 0}%${task.originalEndDate && !isClosed(task) ? `\nVerlängert: ursprünglich Ende ${formatDate(task.originalEndDate)} (${task.extendedCount || 1}×)` : ''}${task.owner ? `\nVerantwortlich: ${escapeHTML(task.owner)}` : ''}${task.blockReason ? `\nBlockiert: ${escapeHTML(task.blockReason)}` : ''}${preds.length ? `\nNach: ${escapeHTML(preds.map(p => p.title).join(', '))}` : ''}`;
     const isShort = span.width < 110;
     const outsideLabel = isShort
       ? `<span class="ml-1.5 text-[11px] font-medium whitespace-nowrap text-slate-700 dark:text-slate-300 pointer-events-none ${task.status === 'Abgebrochen' ? 'line-through opacity-60' : ''}">${escapeHTML(task.title)}${task.milestone ? ` · ${formatDate(task.endDate)}` : ''}</span>`
@@ -420,6 +421,17 @@ function renderGantt(filteredTasks) {
       return;
     }
 
+    // automatisch verlängerter Teil (ursprüngliches Ende bis heutiges Ende) schraffiert
+    let extensionOverlay = '';
+    if (task.originalEndDate && !isClosed(task) && task.originalEndDate >= task.startDate) {
+      const extLeft = spanPx(task.startDate, task.originalEndDate).width;
+      if (extLeft < span.width) {
+        extensionOverlay = `<div class="absolute top-0 bottom-0 right-0 pointer-events-none border-l-2 border-dashed border-white/70"
+          style="left:${extLeft}px; background: repeating-linear-gradient(135deg, rgba(255,255,255,0.32) 0 4px, transparent 4px 9px);"
+          title="Verlängert – ursprüngliches Ende ${formatDate(task.originalEndDate)}"></div>`;
+      }
+    }
+
     barWrapper.innerHTML = `
       <!-- The Main Time Bar -->
       <div class="gantt-bar h-8 rounded-lg border flex items-center px-2.5 overflow-hidden text-xs select-none relative ${barColor}"
@@ -427,6 +439,7 @@ function renderGantt(filteredTasks) {
            onclick="handleTaskClickInGantt('${task.id}', event)"
            title="${barTooltip}">
         <div class="absolute left-0 top-0 bottom-0 ${progressFillColor} pointer-events-none transition-all" style="width: ${task.progress || 0}%;"></div>
+        ${extensionOverlay}
         ${isShort
           ? (span.width >= 44 ? `<div class="relative z-10 w-full text-center text-[10px] font-mono font-medium">${task.progress || 0}%</div>` : '')
           : `<div class="relative z-10 truncate flex items-center justify-between w-full font-medium">

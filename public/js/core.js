@@ -337,6 +337,7 @@ async function loadTasks() {
   initGanttScrollSync();
   initGanttZoom();
   switchView('gantt');
+  initAutoExtend();
 }
 
 function saveViewState() {
