@@ -17,6 +17,26 @@
   stroke-width: 2.5;
 }
 
+/* Dunkelmodus: Browser-Steuerelemente (Datumsfeld samt Kalender, Auswahllisten,
+   Checkboxen, Scrollleisten) ebenfalls dunkel zeichnen */
+html.dark {
+  color-scheme: dark;
+}
+
+/* Kalender-Symbol im Datumsfeld gut sichtbar (im Dunkelmodus zeichnet es der Browser
+   dank color-scheme hell – kein Filter nötig) */
+.date-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 1;
+  width: 1.1em;
+  height: 1.1em;
+  padding: 3px;
+  border-radius: 6px;
+}
+.date-input::-webkit-calendar-picker-indicator:hover {
+  background-color: rgba(16, 185, 129, 0.2);
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   transition: background-color 0.2s ease, color 0.2s ease;

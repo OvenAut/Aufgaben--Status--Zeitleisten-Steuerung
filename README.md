@@ -43,7 +43,6 @@ Startoptionen: `Projekt-Status-Board.exe --port 3300 --no-browser --data D:\Proj
 - **Gantt-Chart** mit stufenlosem Zoom (Lupen-Knöpfe oder Strg/⌘ + Mausrad, Tage … Jahr)
 - **Gruppen** (Gruppe / Phase / Status) mit einklappbaren Sammelbalken, Drag & Drop zwischen Gruppen
 - **Abhängigkeiten** Ende → Anfang, mehrere Vorgänger, farbige Verbindungen (freigegeben / wartet / Konflikt)
-- **Datumswähler** im Aufgabenformular: Kalender mit KW und Zeitraum, Schnellwahl, Dauer in Arbeitstagen; Eintippen wie `29.10.`, `heute`, `+3`
 - **Schnellerfassung** oben: nur Titel + Beschreibung, Zuordnung später („Eingang“)
 - **KI-Rechtschreibprüfung**: Prompt + JSON in die Zwischenablage, Antwort der KI per „KI-Korrektur“ zurück
 - **Tages- und Wochenbericht** mit Änderungsprotokoll, KI-Prompts „Bericht verbessern“ und „Auswerten“

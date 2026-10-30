@@ -9,7 +9,6 @@ function openTaskModal(isEdit = false) {
     document.getElementById('taskId').value = '';
     document.getElementById('taskStartDate').value = toISO(new Date());
     document.getElementById('taskEndDate').value = addDays(5);
-    refreshTaskDateFields();
     document.getElementById('taskProgress').value = 0;
     updateProgressDisplay(0);
     document.getElementById('taskGroup').value = '';
@@ -21,8 +20,14 @@ function openTaskModal(isEdit = false) {
   modal.classList.remove('hidden');
 }
 
+// Klick ins Datumsfeld öffnet den Kalender des Browsers (nicht nur das kleine Symbol)
+function openNativeDatePicker(input) {
+  try {
+    if (typeof input.showPicker === 'function') input.showPicker();
+  } catch (e) { /* z. B. bereits offen – Browser übernimmt */ }
+}
+
 function closeTaskModal() {
-  closeDatePicker();
   document.getElementById('taskModal').classList.add('hidden');
 }
 
@@ -43,7 +48,6 @@ function editTask(id) {
 
   document.getElementById('taskStartDate').value = task.startDate || toISO(new Date());
   document.getElementById('taskEndDate').value = task.endDate || task.deadline || addDays(5);
-  refreshTaskDateFields();
 
   document.getElementById('taskNextAction').value = task.nextAction || '';
   document.getElementById('taskNotes').value = task.notes || '';
@@ -82,10 +86,6 @@ function handleTaskSubmit(e) {
   const progress = parseInt(document.getElementById('taskProgress').value, 10) || 0;
   const startDate = document.getElementById('taskStartDate').value;
   const endDate = document.getElementById('taskEndDate').value;
-  if (!startDate || !endDate) {
-    showToast('Bitte Start- und Enddatum wählen', 'error');
-    return;
-  }
   if (endDate < startDate) {
     showToast('Das Enddatum liegt vor dem Startdatum', 'error');
     return;
