@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Speicherung, Änderungsprotokoll und API des Boards – plattformunabhängig (für WPF-App und Test-Host) -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>ProjektStatusBoard.Core</RootNamespace>
+  </PropertyGroup>
+</Project>

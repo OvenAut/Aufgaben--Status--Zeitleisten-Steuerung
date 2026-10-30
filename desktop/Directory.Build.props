@@ -1,0 +1,14 @@
+<Project>
+  <!-- gemeinsame Einstellungen für alle .NET-Projekte des Boards -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Version>1.1.0</Version>
+    <Company>Projekt-Status-Board</Company>
+    <Product>Projekt-Status-Board</Product>
+    <Copyright>Projekt-Status-Board</Copyright>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+</Project>

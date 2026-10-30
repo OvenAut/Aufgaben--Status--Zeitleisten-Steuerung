@@ -27,6 +27,9 @@ function applyTheme(isDark) {
     if (themeLabel) themeLabel.innerText = 'Dunkelmodus';
   }
 
+  // Desktop-App (WPF/WebView2): Titelleiste an Hell/Dunkel anpassen
+  if (window.chrome && window.chrome.webview) window.chrome.webview.postMessage({ type: 'theme', dark: isDark });
+
   if (tasks && tasks.length > 0) {
     render();
   }
@@ -274,7 +277,7 @@ function initWorkspaceUI() {
       : `Projekt "${currentWorkspace.projectName}" – gespeichert nur in diesem Browser (${currentWorkspace.storageKey})`;
   }
   if (dropdownTitle) dropdownTitle.innerText = `Workspace: ${currentWorkspace.projectName}`;
-  document.title = `${currentWorkspace.projectName} - Board & Gantt (2D & 3D)`;
+  document.title = `${currentWorkspace.projectName} – Projekt-Status-Board`;
 }
 
 // Abhängigkeiten werden als Array von Vorgänger-IDs gespeichert.

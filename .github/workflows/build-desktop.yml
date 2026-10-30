@@ -1,0 +1,63 @@
+# Windows-Desktop-App (.NET 10 WPF + WebView2): bauen, Selbsttest auf Windows, als Download bereitstellen.
+# Dazu ein Vergleichstest unter Linux, ob der C#-Nachbau sich genau wie der Node-Server verhält.
+name: Desktop-App (.NET 10) bauen
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'public/**'
+      - 'desktop/**'
+      - 'server/**'
+      - '.github/workflows/build-desktop.yml'
+  workflow_dispatch:
+
+jobs:
+  windows-desktop:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Desktop-App bauen
+        run: dotnet publish desktop/ProjektStatusBoard/ProjektStatusBoard.csproj -c Release -o dist/desktop
+
+      - name: Selbsttest (Fenster öffnen, Aufgabe speichern, Dateien prüfen)
+        shell: pwsh
+        run: |
+          $result = Join-Path $env:RUNNER_TEMP 'selbsttest.json'
+          $data = Join-Path $env:RUNNER_TEMP 'daten'
+          $proc = Start-Process -FilePath dist\desktop\Projekt-Status-Board.exe -ArgumentList '--selftest', $result, '--data', $data -PassThru
+          if (-not $proc.WaitForExit(120000)) { Stop-Process -Id $proc.Id -Force; throw 'Selbsttest: Zeitüberschreitung' }
+          if (-not (Test-Path $result)) { throw "Selbsttest: kein Ergebnis (Exitcode $($proc.ExitCode))" }
+          Get-Content $result
+          $json = Get-Content $result | ConvertFrom-Json
+          if (-not $json.ok) { throw 'Selbsttest fehlgeschlagen' }
+          Get-ChildItem -Recurse $data | Select-Object FullName, Length
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Projekt-Status-Board-Desktop
+          path: dist/desktop/Projekt-Status-Board.exe
+          if-no-files-found: error
+
+  parity-node-vs-net:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Vergleich Node-Server ↔ C#-Nachbau
+        run: |
+          dotnet build desktop/DevHost/DevHost.csproj -c Release
+          node server/server.js --no-browser --port 3401 --data "$RUNNER_TEMP/node" &
+          dotnet desktop/DevHost/bin/Release/net10.0/DevHost.dll --port 3402 --data "$RUNNER_TEMP/net" --public public &
+          sleep 5
+          node desktop/tests/parity.mjs "$RUNNER_TEMP/node" "$RUNNER_TEMP/net"

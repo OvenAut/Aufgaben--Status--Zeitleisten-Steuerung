@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Entwicklungs-/Test-Host: dieselbe BoardApi über HTTP, läuft auch unter Linux/macOS.
+       Aufruf siehe README (Abschnitt Desktop-App, DevHost). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>ProjektStatusBoard.DevHost</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BoardCore\BoardCore.csproj" />
+  </ItemGroup>
+</Project>

@@ -3,7 +3,39 @@
 Aufgaben-, Status- und Zeitleisten-Steuerung für Automatisierungsprojekte – Gantt-Chart, Kanban und Tabelle.
 Läuft als **Windows-Programm** (lokaler Server + Browser) und protokolliert jede Änderung mit Zeitstempel.
 
-## Benutzung (Windows)
+## Desktop-App (Windows, .NET 10)
+
+`Projekt-Status-Board.exe` aus `desktop/` ist eine eigenständige Windows-Anwendung (WPF + WebView2):
+eigenes Fenster und Programmsymbol, kein Konsolenfenster, kein Browser-Tab, kein Webserver und kein Port.
+
+**Voraussetzungen:** Windows 10/11, [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)
+(„.NET Desktop Runtime 10.0.x“, x64) und die Microsoft Edge WebView2 Runtime (bei Windows 10/11 vorinstalliert).
+
+- Daten wie bei der Node-Version im Ordner `daten` neben der EXE (sonst `%APPDATA%\Projekt-Status-Board\daten`) –
+  gleiches Format, vorhandene Daten laufen ohne Umzug weiter
+- Exporte und Berichte mit Windows-Speichern-Dialog, Fenstergröße wird gemerkt,
+  dunkle Titelleiste im Dunkelmodus, nur eine Instanz je Datenordner
+- Startoptionen: `--data <Ordner>`, `--projekt <Name>`, `--devtools` (Entwicklerwerkzeuge)
+
+Aufbau:
+
+```
+desktop/BoardCore/            Speicherung, Änderungsprotokoll, API (C#-Nachbau von server/server.js)
+desktop/ProjektStatusBoard/   WPF-Fenster mit WebView2; public/ ist eingebettet, /api/... geht direkt an BoardCore
+desktop/DevHost/              Test-Host: dieselbe API über HTTP, läuft auch unter Linux/macOS
+desktop/tests/parity.mjs      Vergleichstest Node-Server ↔ C#-Nachbau
+```
+
+Bauen (.NET 10 SDK, geht auch unter Linux):
+
+```bash
+dotnet publish desktop/ProjektStatusBoard/ProjektStatusBoard.csproj -c Release -o dist/desktop
+```
+
+Der Workflow `.github/workflows/build-desktop.yml` baut die EXE auf Windows, startet sie mit `--selftest`
+(Oberfläche laden, Aufgabe speichern, Dateien prüfen) und stellt sie als Download bereit.
+
+## Benutzung (Node-Version, Windows)
 
 1. `Projekt-Status-Board.exe` in einen eigenen Ordner legen, z. B. `Dokumente\Projekt-Board\`
    (nicht nach `C:\Programme`, dort darf nicht geschrieben werden).
