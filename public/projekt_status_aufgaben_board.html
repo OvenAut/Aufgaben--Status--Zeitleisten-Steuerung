@@ -603,16 +603,25 @@
         <!-- Date Range -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <div>
-            <label class="block text-slate-700 dark:text-slate-300 font-medium mb-1">Startdatum *</label>
-            <input type="date" id="taskStartDate" required
-                   class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 text-slate-900 dark:text-slate-100 outline-none" />
+            <label for="taskStartText" class="block text-slate-700 dark:text-slate-300 font-medium mb-1">Startdatum *</label>
+            <div class="relative">
+              <svg class="icon absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600 dark:text-emerald-400 pointer-events-none" aria-hidden="true"><use href="#i-calendar-days"></use></svg>
+              <input type="text" id="taskStartText" data-date-field="start" autocomplete="off" placeholder="TT.MM.JJJJ"
+                     class="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none cursor-pointer" />
+              <input type="hidden" id="taskStartDate" />
+            </div>
           </div>
           <div>
-            <label class="block text-slate-700 dark:text-slate-300 font-medium mb-1">Enddatum / Frist *</label>
-            <input type="date" id="taskEndDate" required
-                   class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 text-slate-900 dark:text-slate-100 outline-none" />
+            <label for="taskEndText" class="block text-slate-700 dark:text-slate-300 font-medium mb-1">Enddatum / Frist *</label>
+            <div class="relative">
+              <svg class="icon absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600 dark:text-emerald-400 pointer-events-none" aria-hidden="true"><use href="#i-calendar-days"></use></svg>
+              <input type="text" id="taskEndText" data-date-field="end" autocomplete="off" placeholder="TT.MM.JJJJ"
+                     class="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none cursor-pointer" />
+              <input type="hidden" id="taskEndDate" />
+            </div>
           </div>
         </div>
+        <div id="taskDateDuration" class="-mt-2 text-[11px] text-slate-500 dark:text-slate-400"></div>
         <label class="flex items-center gap-2 text-slate-700 dark:text-slate-300 cursor-pointer w-max">
           <input type="checkbox" id="taskMilestone" class="accent-amber-500" />
           <span class="w-2.5 h-2.5 rotate-45 bg-amber-500 inline-block"></span> Meilenstein (wird am Enddatum als Raute angezeigt)
@@ -859,6 +868,7 @@
   <script src="js/overdue.js"></script>
   <script src="js/hovercard.js"></script>
   <script src="js/layout.js"></script>
+  <script src="js/datepicker.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>
